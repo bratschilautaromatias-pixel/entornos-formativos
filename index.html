@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entornos Formativos</title>
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      background: #f1f8e9;
+      color: #1b3a1d;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .tarjeta {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px 24px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+    h1 { color: #2e7d32; margin-top: 0; }
+    #estado { font-size: 1.1rem; font-weight: bold; }
+    .ok { color: #2e7d32; }
+    .error { color: #c62828; }
+    button {
+      margin-top: 16px;
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="tarjeta">
+    <h1>Entornos Formativos</h1>
+    <p id="estado">Conectando con el servidor…</p>
+    <p id="detalle"></p>
+    <button onclick="probar()">Probar de nuevo</button>
+  </div>
+
+  <script>
+    const SERVIDOR = 'https://script.google.com/macros/s/AKfycbxIg5K975zPHK1SN5YO2FufA_quqVqD6jzO8etDK49NeqjJNKyQSc5zTPH-fgVBaLec/exec';
+
+    async function probar() {
+      const estado = document.getElementById('estado');
+      const detalle = document.getElementById('detalle');
+      estado.className = '';
+      estado.textContent = 'Conectando con el servidor…';
+      detalle.textContent = '';
+      try {
+        const respuesta = await fetch(SERVIDOR, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ accion: 'ping' })
+        });
+        const json = await respuesta.json();
+        if (!json.ok) throw new Error(json.error);
+        estado.className = 'ok';
+        estado.textContent = '✅ Conectado: ' + json.datos.mensaje;
+        detalle.textContent = 'Hojas en la planilla: ' + json.datos.hojas.join(', ');
+      } catch (err) {
+        estado.className = 'error';
+        estado.textContent = '❌ No se pudo conectar';
+        detalle.textContent = err.message;
+      }
+    }
+
+    probar();
+  </script>
+</body>
+</html>
