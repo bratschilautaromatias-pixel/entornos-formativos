@@ -37,14 +37,31 @@ PANTALLAS.inicio = function () {
         (esDueno()
           ? '<button class="cuadro ancho" onclick="ir(\'usuarios\')">' +
               '<span class="icono">👥</span>' +
-              '<span><span class="nombre">Usuarios</span>' +
+              '<span><span class="nombre">Usuarios <span class="insignia" id="pendientes" hidden></span></span>' +
               '<span class="detalle">Aprobar cuentas nuevas y elegir quién es editor o visor</span></span>' +
             '</button>'
           : '') +
       '</div>' +
     '</main>'
   );
+
+  if (esDueno()) contarPendientes();
 };
+
+/** Muestra en el cuadro Usuarios cuántas cuentas esperan aprobación. */
+async function contarPendientes() {
+  try {
+    const usuarios = await llamar('listarUsuarios');
+    const cantidad = usuarios.filter(function (u) { return u.estado === 'pendiente'; }).length;
+    const insignia = document.getElementById('pendientes');
+    if (insignia && cantidad) {
+      insignia.textContent = cantidad === 1 ? '1 nueva' : cantidad + ' nuevas';
+      insignia.hidden = false;
+    }
+  } catch (e) {
+    // sin conexión o sesión vencida: no se muestra el número
+  }
+}
 
 /* Pantallas que se construyen en las próximas etapas */
 
@@ -55,11 +72,6 @@ PANTALLAS.entorno = function (clave) {
 
 PANTALLAS.tareas = function () {
   pantallaEnConstruccion('Tareas de la semana', '📋');
-};
-
-PANTALLAS.usuarios = function () {
-  if (!esDueno()) return ir('inicio');
-  pantallaEnConstruccion('Usuarios', '👥');
 };
 
 function pantallaEnConstruccion(titulo, icono) {

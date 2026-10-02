@@ -114,6 +114,13 @@ function ocupado(boton, estaOcupado, textoOcupado) {
   }
 }
 
+/** "2026-10-01T22:55:00.000Z" → "01/10/2026" */
+function formatearFecha(iso) {
+  if (!iso) return '';
+  const fecha = new Date(iso);
+  return isNaN(fecha) ? String(iso) : fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 function esDueno() {
   const sesion = Sesion.leer();
   return !!sesion && sesion.usuario.rol === 'dueno';
