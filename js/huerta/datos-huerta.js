@@ -109,10 +109,16 @@ function carenciasActivas(h, siembraId) {
   });
 }
 
+/**
+ * % de germinación igual que Surco: se SUMAN los plantines que nacieron en cada conteo
+ * (día 7 + día 10 + día 14) y se dividen por el total de celdas sembradas. Un decimal.
+ */
 function porcentajeGerminacion(a) {
+  if (a.germinadasDia7 === '' && a.germinadasDia10 === '' && a.germinadasDia14 === '') return null;
   const total = (Number(a.cantidadCeldas) || 0) * (Number(a.cantidadBandejas) || 1);
-  const germinadas = Math.max(Number(a.germinadasDia7) || 0, Number(a.germinadasDia10) || 0, Number(a.germinadasDia14) || 0);
-  return total > 0 && germinadas > 0 ? Math.round(germinadas * 100 / total) : null;
+  if (total <= 0) return null;
+  const germinadas = (Number(a.germinadasDia7) || 0) + (Number(a.germinadasDia10) || 0) + (Number(a.germinadasDia14) || 0);
+  return Math.round(germinadas * 1000 / total) / 10;
 }
 
 /* ---------- Clima (Open-Meteo, gratuito) ---------- */

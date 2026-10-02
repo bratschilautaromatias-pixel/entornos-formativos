@@ -19,7 +19,8 @@ function pantallaParcelas() {
               const ocupado = h.siembras.find(function (s) { return s.lomoId === l.id && HUERTA.activas.indexOf(s.estado) !== -1; });
               return '<button class="chip-lomo' + (ocupado ? ' ocupado' : '') + '" ' + (editar ? 'onclick="formularioLomo(\'' + esc(l.id) + '\')"' : 'disabled') +
                 ' title="' + esc(ocupado ? nombreCultivo(h, ocupado.cultivoId) : 'Libre') + '">' +
-                esc(l.numero) + (ocupado ? ' · ' + esc(nombreCultivo(h, ocupado.cultivoId)) : '') + '</button>';
+                esc(l.numero) + (ocupado ? ' · ' + esc(nombreCultivo(h, ocupado.cultivoId)) +
+                  (Number(ocupado.cantidadPlantas) ? ' (' + numero(ocupado.cantidadPlantas) + ' pl.)' : '') : '') + '</button>';
             }).join('') + '</div>' : '') +
             (p.notas ? '<span class="ayuda notas">' + esc(p.notas) + '</span>' : '') +
           '</div>' +
@@ -125,7 +126,7 @@ function pantallaAlmacigos() {
             '<span class="ayuda">Germinadas: día 7 ' + (a.germinadasDia7 || '—') + ' · día 10 ' + (a.germinadasDia10 || '—') + ' · día 14 ' + (a.germinadasDia14 || '—') + '</span>' +
             (a.notas ? '<span class="ayuda notas">' + esc(a.notas) + '</span>' : '') +
           '</div>' +
-          '<div class="movimiento-valor">' + (pct === null ? '—' : pct + '%') + '<br><span class="ayuda">germinación</span></div>' +
+          '<div class="movimiento-valor">' + (pct === null ? '—' : String(pct).replace('.', ',') + '%') + '<br><span class="ayuda">germinación</span></div>' +
           (editar ? '<div class="movimiento-acciones">' +
             (a.estado === 'En almácigo' ? '<button class="boton chico" onclick="trasplantarAlmacigo(\'' + esc(a.id) + '\')">Trasplantar</button>' : '') +
             '<button class="boton chico secundario" onclick="formularioAlmacigo(\'' + esc(a.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
@@ -149,7 +150,8 @@ async function formularioAlmacigo(id) {
       { nombre: 'tipoBandeja', etiqueta: 'Tipo de bandeja', tipo: 'texto', medio: true },
       { nombre: 'cantidadBandejas', etiqueta: 'Cantidad de bandejas', tipo: 'entero', minimo: 1, medio: true },
       { nombre: 'cantidadCeldas', etiqueta: 'Celdas por bandeja', tipo: 'entero', minimo: 1, requerido: true },
-      { nombre: 'germinadasDia7', etiqueta: 'Germinadas día 7', tipo: 'entero', minimo: 0, seccion: 'Germinación (conteo de plantines nacidos)' },
+      { nombre: 'germinadasDia7', etiqueta: 'Germinadas día 7', tipo: 'entero', minimo: 0, seccion: 'Germinación (plantines nuevos en cada conteo)',
+        ayuda: 'El % de germinación suma los tres conteos y los divide por el total de celdas' },
       { nombre: 'germinadasDia10', etiqueta: 'Germinadas día 10', tipo: 'entero', minimo: 0, medio: true },
       { nombre: 'germinadasDia14', etiqueta: 'Germinadas día 14', tipo: 'entero', minimo: 0, medio: true },
       { nombre: 'notas', etiqueta: 'Notas', tipo: 'area' }

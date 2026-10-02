@@ -133,6 +133,7 @@ function htmlTarjetaSiembra(h, s) {
     '<button class="tarjeta-siembra-texto" onclick="ir(\'huerta/siembra/' + id + '\')">' +
       '<strong>' + (lomo ? 'Lomo ' + esc(lomo.numero) + ' · ' : '') + esc(nombreCultivo(h, s.cultivoId)) + '</strong>' +
       '<span class="ayuda">Sembrado ' + formatearFecha(s.fechaSiembra) + ' · ' + dias + ' días · ' +
+        (Number(s.cantidadPlantas) ? numero(s.cantidadPlantas) + ' plantas · ' : '') +
         (HUERTA.activas.indexOf(s.estado) !== -1 ? 'Etapa ' + esc(etapa.toLowerCase()) + ' · ' : '') + esc(s.estado) +
         (kg ? ' · ' + numero(kg) + ' kg' : '') + '</span>' +
       (carencia.length ? '<span class="aviso-carencia">⚠ En carencia hasta el ' + formatearFecha(finCarencia(carencia[0])) + '</span>' : '') +
@@ -171,10 +172,12 @@ function pantallaFichaSiembra(id) {
       '<p class="saludo">' + esc(descripcionSiembra(h, s, false)) + '</p>' +
       (carencia.length ? '<div class="aviso error">⚠ En período de carencia hasta el ' + formatearFecha(finCarencia(carencia[0])) +
         ' (' + esc(carencia[0].producto) + '). No cosechar antes.</div>' : '') +
-      '<div class="resumen">' +
+      '<div class="resumen resumen-3">' +
+        '<div><b>' + (Number(s.cantidadPlantas) ? numero(s.cantidadPlantas) : '—') + '</b><span>Plantas</span></div>' +
         '<div><b>' + dias + '</b><span>Días desde la siembra</span></div>' +
         '<div><b>' + esc(ek.etapa) + '</b><span>Etapa (Kc ' + ek.kc.toFixed(2) + ')</span></div>' +
         '<div class="ok"><b>' + numero(kg) + '</b><span>Kg cosechados</span></div>' +
+        '<div class="ok"><b>' + (kg && Number(s.cantidadPlantas) ? numero(kg / Number(s.cantidadPlantas)) : '—') + '</b><span>Kg por planta</span></div>' +
         '<div><b>' + numero(litros) + '</b><span>Litros regados</span></div>' +
       '</div>' +
       (ciclo ? '<div class="avance"><div class="avance-barra" style="width:' + Math.min(100, Math.round(dias * 100 / ciclo)) + '%"></div></div>' +
@@ -263,10 +266,11 @@ async function formularioSiembra(id, valoresIniciales) {
             .map(function (l) { return { valor: l.id, texto: etiquetaLomo(l) }; });
         } },
       { nombre: 'fechaSiembra', etiqueta: 'Fecha de siembra o trasplante', tipo: 'fecha', requerido: true, medio: true },
+      { nombre: 'cantidadPlantas', etiqueta: 'Cantidad de plantas', tipo: 'entero', minimo: 0, medio: true,
+        ayuda: 'Plantas sembradas en el lomo' },
       { nombre: 'estado', etiqueta: 'Estado', tipo: 'select', requerido: true, opciones: HUERTA.estadosSiembra, medio: true },
       { nombre: 'superficieM2', etiqueta: 'Superficie (m²)', tipo: 'numero', minimo: 0, medio: true,
         ayuda: 'Si la dejás vacía se usa la del lomo' },
-      { nombre: 'cantidadPlantas', etiqueta: 'Cantidad de plantas', tipo: 'entero', minimo: 0, medio: true },
       { nombre: 'almacigoId', etiqueta: 'Viene del almácigo', tipo: 'select', vacio: 'No (siembra directa)',
         opciones: h.almacigos.filter(function (a) { return a.activo !== 'false' || (s && s.almacigoId === a.id); })
           .map(function (a) { return { valor: a.id, texto: nombreCultivo(h, a.cultivoId) + ' · ' + formatearFecha(a.fechaSiembra) + ' · ' + a.estado }; }) },
