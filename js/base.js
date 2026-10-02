@@ -160,7 +160,7 @@ function htmlBarra(titulo, volverA) {
     (volverA ? '<button onclick="ir(\'' + volverA + '\')" aria-label="Volver">←</button>' : '') +
     '<span class="titulo">' + esc(titulo) + '</span>' +
     '<button class="chip-sync" id="indicador-sync" onclick="Sincronizador.sincronizar()" hidden></button>' +
-    (sesion ? '<span class="chip">' + esc(NOMBRES_ROL[sesion.usuario.rol] || sesion.usuario.rol) + '</span>' : '') +
+    (sesion ? '<span class="chip chip-rol">' + esc(NOMBRES_ROL[sesion.usuario.rol] || sesion.usuario.rol) + '</span>' : '') +
     (sesion ? '<button onclick="salir()">Salir</button>' : '') +
     '</header>';
 }
@@ -232,6 +232,77 @@ function cerrarModal() {
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') cerrarModal();
 });
+
+/* ---------- Impresión ---------- */
+
+/** Imprime solo el HTML indicado (en el celular permite "Guardar como PDF"). */
+function imprimirHtml(html) {
+  let zona = document.getElementById('zona-impresion');
+  if (!zona) {
+    zona = document.createElement('div');
+    zona.id = 'zona-impresion';
+    document.body.appendChild(zona);
+  }
+  zona.innerHTML = html;
+  document.body.classList.add('imprimiendo');
+  const terminar = function () {
+    document.body.classList.remove('imprimiendo');
+    zona.innerHTML = '';
+    window.removeEventListener('afterprint', terminar);
+  };
+  window.addEventListener('afterprint', terminar);
+  setTimeout(function () { window.print(); }, 50);
+}
+
+/* ---------- Números y plata ---------- */
+
+const FORMATO_PESOS = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+function pesos(valor) {
+  return FORMATO_PESOS.format(Number(valor) || 0);
+}
+
+function numero(valor) {
+  return (Number(valor) || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+}
+
+/** Entiende "1.500,50", "1500.5", "$ 2.000" o "1,5". Devuelve NaN si no es un número. */
+function parsearNumero(texto) {
+  let t = String(texto || '').replace(/[$\s]/g, '');
+  if (!t) return NaN;
+  if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
+}
+
+/* ---------- Períodos ---------- */
+
+const NOMBRES_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** tipo: mes | mesAnterior | anio | todo | rango → { desde, hasta, titulo } */
+function calcularPeriodo(tipo, desde, hasta) {
+  const hoy = new Date();
+  const anio = hoy.getFullYear();
+  const mes = hoy.getMonth();
+  const ultimoDia = function (a, m) { return fechaATexto(new Date(a, m + 1, 0)); };
+  if (tipo === 'mes') {
+    return { desde: fechaATexto(new Date(anio, mes, 1)), hasta: ultimoDia(anio, mes), titulo: 'Mes de ' + NOMBRES_MESES[mes] + ' ' + anio };
+  }
+  if (tipo === 'mesAnterior') {
+    const inicio = new Date(anio, mes - 1, 1);
+    return {
+      desde: fechaATexto(inicio), hasta: ultimoDia(inicio.getFullYear(), inicio.getMonth()),
+      titulo: 'Mes de ' + NOMBRES_MESES[inicio.getMonth()] + ' ' + inicio.getFullYear()
+    };
+  }
+  if (tipo === 'anio') return { desde: anio + '-01-01', hasta: anio + '-12-31', titulo: 'Año ' + anio };
+  if (tipo === 'rango' && desde && hasta) {
+    const a = desde <= hasta ? desde : hasta;
+    const b = desde <= hasta ? hasta : desde;
+    return { desde: a, hasta: b, titulo: 'Del ' + formatearFecha(a) + ' al ' + formatearFecha(b) };
+  }
+  return { desde: '0000-01-01', hasta: '9999-12-31', titulo: 'Todos los registros' };
+}
 
 /* ---------- Fechas (siempre como texto "AAAA-MM-DD", hora local) ---------- */
 

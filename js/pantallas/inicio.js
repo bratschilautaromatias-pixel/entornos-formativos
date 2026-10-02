@@ -63,16 +63,15 @@ async function contarPendientes() {
   }
 }
 
-/* Pantallas que se construyen en las próximas etapas */
+/** Datos del entorno a partir de su clave ("huerta" → { nombre: 'Huerta', ... }). */
+function entornoPorClave(clave) {
+  return ENTORNOS.find(function (e) { return e.clave === clave && e.activo; }) || null;
+}
 
-PANTALLAS.entorno = function (clave) {
-  const entorno = ENTORNOS.find(function (e) { return e.clave === clave; }) || ENTORNOS[0];
-  pantallaEnConstruccion(entorno.nombre, entorno.icono);
-};
-
-function pantallaEnConstruccion(titulo, icono) {
+/* Pantalla genérica para las secciones que se construyen en las próximas etapas */
+function pantallaEnConstruccion(titulo, icono, volverA) {
   render(
-    htmlBarra(titulo, 'inicio') +
+    htmlBarra(titulo, volverA || 'inicio') +
     '<main class="contenido">' +
       '<div class="vacio">' +
         '<div class="icono">' + icono + '</div>' +

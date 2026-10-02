@@ -131,6 +131,9 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
 }
 .barra button:hover { background: rgba(255, 255, 255, 0.28); }
+@media (max-width: 420px) {
+  .barra .chip-rol { display: none; }
+}
 
 .chip {
   display: inline-block;
@@ -397,6 +400,104 @@ body.con-modal { overflow: hidden; }
 .dos-columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .modal-botones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .modal-botones .espacio { flex: 1; }
+
+/* ===== Entorno y Economía ===== */
+.grilla-secciones { margin-top: 8px; }
+.mini-resumen { margin-bottom: 16px; }
+
+.totales {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 6px 0 14px;
+}
+@media (min-width: 760px) {
+  .totales { grid-template-columns: repeat(4, 1fr); }
+  .mini-resumen .totales { grid-template-columns: repeat(3, 1fr); }
+}
+.mini-resumen .totales { grid-template-columns: repeat(3, 1fr); }
+.totales div {
+  background: var(--tarjeta);
+  border-radius: 10px;
+  box-shadow: var(--sombra);
+  padding: 10px 12px;
+  border-top: 4px solid var(--gris);
+  min-width: 0;
+}
+.totales .ok { border-top-color: var(--verde); }
+.totales .mal { border-top-color: var(--rojo); }
+.totales span { display: block; font-size: 0.8rem; color: var(--texto-suave); }
+.totales b { display: block; font-size: clamp(0.85rem, 4.2vw, 1.15rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.totales small { display: block; font-size: 0.72rem; color: var(--texto-suave); }
+
+.selector-periodo label { margin-bottom: 8px; }
+.botones-alta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.botones-alta .boton { flex: 1; }
+
+.pestanas {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 2px solid var(--borde);
+  margin-bottom: 10px;
+}
+.pestana {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--texto-suave);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pestana.activa { color: var(--verde-oscuro); border-bottom-color: var(--verde); }
+.buscador { margin: 0 0 12px; }
+
+.movimiento {
+  background: var(--tarjeta);
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  border-left: 5px solid var(--gris);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.movimiento.mov-ingresos { border-left-color: var(--verde); }
+.movimiento.mov-egresos { border-left-color: var(--rojo); }
+.movimiento.mov-remitos { border-left-color: var(--ambar); }
+.movimiento.eliminado { opacity: 0.75; }
+.movimiento-texto { flex: 1 1 200px; min-width: 0; }
+.movimiento-texto strong { display: block; overflow-wrap: anywhere; }
+.movimiento-texto .notas { font-style: italic; }
+.movimiento-valor { font-weight: 700; white-space: nowrap; }
+.movimiento-acciones { display: flex; gap: 6px; }
+
+/* ===== Impresión ===== */
+#zona-impresion { display: none; }
+@media print {
+  body.imprimiendo > *:not(#zona-impresion) { display: none !important; }
+  body.imprimiendo #zona-impresion { display: block; }
+  body.imprimiendo { background: #fff; }
+}
+.remito-impreso { font-family: Arial, sans-serif; color: #000; padding: 10mm; max-width: 180mm; }
+.remito-cabecera { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
+.remito-cabecera h1 { margin: 0; font-size: 22pt; }
+.remito-cabecera p { margin: 2px 0 0; }
+.remito-numero { text-align: right; }
+.remito-numero b { display: block; font-size: 18pt; }
+.remito-impreso table { width: 100%; border-collapse: collapse; font-size: 12pt; }
+.remito-impreso th, .remito-impreso td { border: 1px solid #000; padding: 8px; text-align: left; }
+.remito-impreso th { width: 30%; background: #eee; }
+.firmas { display: flex; gap: 30px; margin-top: 60px; }
+.firmas div { flex: 1; text-align: center; font-size: 10pt; }
+.firmas span { display: block; border-top: 1px solid #000; margin-bottom: 4px; }
 
 /* ===== Aviso de versión nueva ===== */
 .aviso-version {

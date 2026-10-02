@@ -71,6 +71,14 @@ const Datos = {
       .filter(function (d) { return d.eliminado !== 'true'; });
   },
 
+  /** Registros eliminados de una tabla (la papelera). */
+  listarEliminados: async function (tabla) {
+    const filas = await BaseLocal.leerTabla(tabla);
+    return filas
+      .map(function (f) { return f.datos; })
+      .filter(function (d) { return d.eliminado === 'true'; });
+  },
+
   obtener: async function (tabla, id) {
     const fila = await BaseLocal.leer(tabla, id);
     return fila ? fila.datos : null;
