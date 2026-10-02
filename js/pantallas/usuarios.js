@@ -81,6 +81,10 @@ function htmlFilaUsuario(u) {
       '<button class="boton chico" onclick="actualizarUsuario(this, \'' + id + '\', {estado: \'activo\'})">Desbloquear (' + esc(NOMBRES_ROL[u.rol] || u.rol) + ')</button>';
   }
 
+  if (u.estado === 'bloqueado') {
+    acciones += '<button class="boton chico peligro" onclick="eliminarUsuario(this, \'' + id + '\', \'' + nombreUsuario + '\')">Eliminar</button>';
+  }
+
   return '<div class="fila-usuario">' +
     '<div class="datos-usuario">' +
       '<strong>' + esc(u.nombre) + '</strong>' +
@@ -117,6 +121,19 @@ async function nuevaClaveUsuario(boton, id, usuario) {
     mostrarAvisoUsuarios(e.message, 'error');
   }
   ocupado(boton, false);
+}
+
+async function eliminarUsuario(boton, id, usuario) {
+  if (!confirm('¿Eliminar definitivamente la cuenta de ' + usuario + '?\nNo se puede deshacer. Si vuelve, tendrá que crear una cuenta nueva.')) return;
+  ocupado(boton, true, 'Eliminando…');
+  try {
+    const resultado = await llamar('eliminarUsuario', { id: id });
+    mostrarAvisoUsuarios(resultado.mensaje, 'ok');
+  } catch (e) {
+    if (e.codigo === 'SESION') return cerrarSesion(e.message);
+    mostrarAvisoUsuarios(e.message, 'error');
+  }
+  cargarUsuarios();
 }
 
 function descripcionEstado(u) {
