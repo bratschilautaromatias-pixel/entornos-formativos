@@ -73,7 +73,7 @@ function ir(ruta) {
 function mostrarPantalla() {
   const partes = location.hash.replace(/^#\/?/, '').split('/');
   let ruta = partes[0];
-  const parametro = partes[1] || '';
+  const parametro = partes.slice(1).join('/'); // ej. "siembra/123" en #/huerta/siembra/123
   const sesion = Sesion.leer();
 
   if (!sesion && PANTALLAS_PUBLICAS.indexOf(ruta) === -1) ruta = 'ingresar';

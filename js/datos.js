@@ -221,6 +221,7 @@ const Sincronizador = {
       });
 
       await BaseLocal.escribir(aEscribir);
+      if (respuesta.config) await BaseLocal.escribirMeta('config', respuesta.config);
 
       // Si el servidor tiene tablas que este equipo no conocía (por ejemplo, se agregó Economía),
       // hay que bajarlas completas: se vuelve a sincronizar todo desde cero una vez.

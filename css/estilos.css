@@ -479,6 +479,117 @@ body.con-modal { overflow: hidden; }
 .movimiento-valor { font-weight: 700; white-space: nowrap; }
 .movimiento-acciones { display: flex; gap: 6px; }
 
+/* ===== Formularios genéricos ===== */
+.form-seccion {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--verde-oscuro);
+  border-top: 1px solid var(--borde);
+  padding-top: 12px;
+  margin: 8px 0 10px;
+}
+label.casilla { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+label.casilla input { width: auto; margin: 0; }
+
+/* ===== Huerta ===== */
+.tarjeta-siembra {
+  background: var(--tarjeta);
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  border-left: 5px solid var(--verde);
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-right: 10px;
+}
+.tarjeta-siembra.estado-en-cosecha { border-left-color: var(--ambar); }
+.tarjeta-siembra.estado-cosechada { border-left-color: var(--gris); opacity: 0.8; }
+.tarjeta-siembra.estado-perdida { border-left-color: var(--rojo); opacity: 0.8; }
+.tarjeta-siembra-texto {
+  flex: 1 1 220px;
+  min-width: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 10px 12px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.tarjeta-siembra-texto strong { display: block; }
+.tarjeta-siembra-texto .ayuda { display: block; }
+.acciones-siembra { display: flex; gap: 6px; }
+.aviso-carencia { display: block; color: var(--rojo); font-size: 0.8rem; font-weight: 600; margin-top: 2px; }
+
+.fila-historial {
+  background: var(--tarjeta);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+.desplegable {
+  background: var(--tarjeta);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 10px 14px;
+  margin: 14px 0;
+}
+.desplegable summary { cursor: pointer; font-weight: 700; }
+.dato { margin: 6px 0; font-size: 0.92rem; }
+.dato span { display: block; font-size: 0.75rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.3px; }
+.ficha { margin-top: 12px; }
+.ficha strong { color: var(--verde-oscuro); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip-lomo {
+  border: 1px solid var(--borde);
+  background: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--texto);
+}
+.chip-lomo.ocupado { background: var(--verde-claro); border-color: var(--verde); }
+.chip-lomo:disabled { cursor: default; }
+.fila-usuario.inactiva { opacity: 0.6; }
+
+.fila-cultivo {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--tarjeta);
+  border: none;
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.fila-cultivo strong { display: block; }
+
+.tabla-desplazable { overflow-x: auto; margin: 10px 0; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: var(--tarjeta); }
+.tabla th, .tabla td { padding: 7px 8px; border-bottom: 1px solid var(--borde); text-align: right; white-space: nowrap; }
+.tabla th:first-child, .tabla td:first-child { text-align: left; }
+.tabla th { background: var(--verde-claro); color: var(--verde-oscuro); }
+.tabla tr.pronostico td { color: var(--texto-suave); font-style: italic; }
+.tabla tr.hoy td { background: #fff8e1; font-weight: 700; }
+
+.barra-dato { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: center; margin-top: 6px; font-size: 0.85rem; }
+.barra-dato div { background: var(--borde); border-radius: 999px; height: 8px; overflow: hidden; }
+.barra-dato i { display: block; height: 100%; background: var(--verde); }
+
 /* ===== Impresión ===== */
 #zona-impresion { display: none; }
 @media print {
