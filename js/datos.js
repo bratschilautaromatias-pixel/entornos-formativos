@@ -10,11 +10,14 @@ const BaseLocal = (function () {
   function abrir() {
     if (!conexion) {
       conexion = new Promise(function (resolver, rechazar) {
-        const pedido = indexedDB.open('entornos-formativos', 1);
+        const pedido = indexedDB.open('entornos-formativos', 2);
         pedido.onupgradeneeded = function () {
+          // Crea lo que falte (sirve tanto para equipos nuevos como para reparar uno incompleto)
           const db = pedido.result;
-          db.createObjectStore('registros', { keyPath: 'clave' }).createIndex('tabla', 'tabla');
-          db.createObjectStore('meta', { keyPath: 'clave' });
+          if (!db.objectStoreNames.contains('registros')) {
+            db.createObjectStore('registros', { keyPath: 'clave' }).createIndex('tabla', 'tabla');
+          }
+          if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'clave' });
         };
         pedido.onsuccess = function () { resolver(pedido.result); };
         pedido.onerror = function () { rechazar(pedido.error); };
@@ -218,7 +221,15 @@ const Sincronizador = {
       });
 
       await BaseLocal.escribir(aEscribir);
-      await BaseLocal.escribirMeta('ultimaSincronizacion', respuesta.servidorEn);
+
+      // Si el servidor tiene tablas que este equipo no conocía (por ejemplo, se agregó Economía),
+      // hay que bajarlas completas: se vuelve a sincronizar todo desde cero una vez.
+      const tablasServidor = Object.keys(respuesta.registros || {});
+      const conocidas = await BaseLocal.leerMeta('tablasConocidas');
+      const hayNuevas = desde && (!conocidas || tablasServidor.some(function (t) { return conocidas.indexOf(t) === -1; }));
+      await BaseLocal.escribirMeta('tablasConocidas', tablasServidor);
+      await BaseLocal.escribirMeta('ultimaSincronizacion', hayNuevas ? '' : respuesta.servidorEn);
+      if (hayNuevas) this.repetir = true;
       this.mensajeError = '';
       if (aEscribir.length) avisarCambioDeDatos();
     } catch (e) {

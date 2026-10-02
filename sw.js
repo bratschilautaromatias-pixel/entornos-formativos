@@ -4,7 +4,7 @@
  * IMPORTANTE: cada vez que se cambia cualquier archivo de la app hay que subir el número de VERSION;
  * así los equipos se enteran de que hay una versión nueva y muestran el aviso "Actualizar".
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'entornos-formativos-' + VERSION;
 
 const ARCHIVOS = [
