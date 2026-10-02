@@ -35,6 +35,7 @@ PANTALLAS.ingresar = function () {
       Sesion.guardar({ token: datos.token, usuario: datos.usuario, sinConexion: false });
       await AccesoLocal.guardar(usuario, clave, datos.usuario, datos.token);
       ir('inicio');
+      Sincronizador.sincronizar();
     } catch (e) {
       if (e.codigo === 'RED') {
         const local = await AccesoLocal.comprobar(usuario, clave);
@@ -101,6 +102,7 @@ PANTALLAS.registro = function () {
         await AccesoLocal.guardar(usuario, clave, datos.usuario, datos.token);
         avisoPendiente = { texto: resultado.mensaje };
         ir('inicio');
+        Sincronizador.sincronizar();
       } else {
         avisoPendiente = { texto: resultado.mensaje };
         ir('ingresar');

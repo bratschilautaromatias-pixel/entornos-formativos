@@ -70,10 +70,6 @@ PANTALLAS.entorno = function (clave) {
   pantallaEnConstruccion(entorno.nombre, entorno.icono);
 };
 
-PANTALLAS.tareas = function () {
-  pantallaEnConstruccion('Tareas de la semana', '📋');
-};
-
 function pantallaEnConstruccion(titulo, icono) {
   render(
     htmlBarra(titulo, 'inicio') +

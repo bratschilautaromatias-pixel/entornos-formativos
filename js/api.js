@@ -25,18 +25,25 @@ async function llamar(accion, datos) {
   const sesion = Sesion.leer();
   if (sesion && sesion.token && !pedido.token) pedido.token = sesion.token;
 
+  // Google a veces falla un instante (por ejemplo justo después de publicar una versión nueva),
+  // así que se reintenta hasta 3 veces antes de dar el error.
   let json;
-  try {
-    const respuesta = await fetch(SERVIDOR, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(pedido)
-    });
-    json = await respuesta.json();
-  } catch (e) {
-    const error = new Error('No hay conexión con el servidor. Revisá tu internet.');
-    error.codigo = 'RED';
-    throw error;
+  for (let intento = 1; intento <= 3 && !json; intento++) {
+    try {
+      const respuesta = await fetch(SERVIDOR, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(pedido)
+      });
+      json = await respuesta.json();
+    } catch (e) {
+      if (intento === 3 || !navigator.onLine) {
+        const error = new Error('No hay conexión con el servidor. Revisá tu internet.');
+        error.codigo = 'RED';
+        throw error;
+      }
+      await new Promise(function (listo) { setTimeout(listo, 1500 * intento); });
+    }
   }
   if (!json.ok) {
     const error = new Error(json.error || 'Error desconocido');

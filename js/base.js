@@ -7,12 +7,16 @@ const PANTALLAS = {};
 const PANTALLAS_PUBLICAS = ['ingresar', 'registro'];
 const NOMBRES_ROL = { dueno: 'Dueño', editor: 'Editor', visor: 'Visor' };
 
-let avisoPendiente = null; // mensaje para mostrar en la próxima pantalla
+let avisoPendiente = null;       // mensaje para mostrar en la próxima pantalla
+let alActualizarDatos = null;    // la pantalla abierta pone acá cómo redibujarse cuando llegan datos nuevos
 
 function iniciarApp() {
   window.addEventListener('hashchange', mostrarPantalla);
-  window.addEventListener('online', actualizarIndicadorRed);
-  window.addEventListener('offline', actualizarIndicadorRed);
+  window.addEventListener('ef-sync', actualizarIndicadorSync);
+  window.addEventListener('ef-datos', function () {
+    if (typeof alActualizarDatos === 'function') alActualizarDatos();
+  });
+  Sincronizador.iniciar();
   mostrarPantalla();
   revisarSesion();
 }
@@ -34,12 +38,14 @@ function mostrarPantalla() {
   const destino = '#/' + ruta + (parametro && ruta === partes[0] ? '/' + parametro : '');
   if (location.hash !== destino) history.replaceState(null, '', destino);
 
+  cerrarModal();
+  alActualizarDatos = null;
   window.scrollTo(0, 0);
   PANTALLAS[ruta](parametro);
-  actualizarIndicadorRed();
+  actualizarIndicadorSync();
 }
 
-/** Al abrir la app con una sesión guardada, confirma con el servidor que sigue valiendo. */
+/** Al abrir la app con una sesión guardada, confirma con el servidor que sigue valiendo y sincroniza. */
 async function revisarSesion() {
   const sesion = Sesion.leer();
   if (!sesion) return;
@@ -48,15 +54,39 @@ async function revisarSesion() {
     Sesion.guardar({ token: datos.token, usuario: datos.usuario, sinConexion: false });
     if (datos.usuario.rol !== sesion.usuario.rol) mostrarPantalla();
   } catch (e) {
-    if (e.codigo === 'SESION') cerrarSesion(e.message);
+    if (e.codigo === 'SESION') return cerrarSesion(e.message);
     // Si es 'RED' no pasa nada: se sigue trabajando sin conexión
   }
+  Sincronizador.sincronizar();
 }
 
 function cerrarSesion(motivo) {
   Sesion.borrar();
   avisoPendiente = motivo ? { texto: motivo, tipo: 'error' } : null;
   ir('ingresar');
+}
+
+/** Botón Salir: avisa si quedan cambios sin enviar al servidor. */
+async function salir() {
+  await Sincronizador.actualizarEstado();
+  if (Sincronizador.pendientes &&
+      !confirm('Hay ' + Sincronizador.pendientes + ' cambio(s) sin sincronizar.\n' +
+               'Quedan guardados en este equipo y se van a enviar la próxima vez que alguien entre con internet.\n\n¿Salir igual?')) {
+    return;
+  }
+  cerrarSesion();
+}
+
+/* ---------- Permisos ---------- */
+
+function esDueno() {
+  const sesion = Sesion.leer();
+  return !!sesion && sesion.usuario.rol === 'dueno';
+}
+
+function puedeEditar() {
+  const sesion = Sesion.leer();
+  return !!sesion && (sesion.usuario.rol === 'dueno' || sesion.usuario.rol === 'editor');
 }
 
 /* ---------- Utilidades para armar pantallas ---------- */
@@ -85,15 +115,28 @@ function htmlBarra(titulo, volverA) {
   return '<header class="barra">' +
     (volverA ? '<button onclick="ir(\'' + volverA + '\')" aria-label="Volver">←</button>' : '') +
     '<span class="titulo">' + esc(titulo) + '</span>' +
-    '<span class="chip sin-red" id="indicador-red" hidden>Sin conexión</span>' +
+    '<button class="chip-sync" id="indicador-sync" onclick="Sincronizador.sincronizar()" hidden></button>' +
     (sesion ? '<span class="chip">' + esc(NOMBRES_ROL[sesion.usuario.rol] || sesion.usuario.rol) + '</span>' : '') +
-    (sesion ? '<button onclick="cerrarSesion()">Salir</button>' : '') +
+    (sesion ? '<button onclick="salir()">Salir</button>' : '') +
     '</header>';
 }
 
-function actualizarIndicadorRed() {
-  const indicador = document.getElementById('indicador-red');
-  if (indicador) indicador.hidden = navigator.onLine;
+/** El cartelito de la barra: sin conexión, cambios sin enviar, sincronizando... */
+function actualizarIndicadorSync() {
+  const indicador = document.getElementById('indicador-sync');
+  if (!indicador) return;
+  const s = Sincronizador;
+  const textos = {
+    'sin-red': 'Sin conexión' + (s.pendientes ? ' · ' + s.pendientes + ' sin enviar' : ''),
+    'sincronizando': 'Sincronizando…',
+    'pendiente': s.pendientes + ' sin enviar',
+    'error': 'Error al sincronizar',
+    'ok': ''
+  };
+  indicador.textContent = textos[s.estado] || '';
+  indicador.title = s.estado === 'error' ? s.mensajeError : 'Tocá para sincronizar ahora';
+  indicador.className = 'chip-sync ' + s.estado;
+  indicador.hidden = !indicador.textContent;
 }
 
 function mostrarMensaje(id, texto, tipo) {
@@ -114,14 +157,91 @@ function ocupado(boton, estaOcupado, textoOcupado) {
   }
 }
 
-/** "2026-10-01T22:55:00.000Z" → "01/10/2026" */
-function formatearFecha(iso) {
-  if (!iso) return '';
-  const fecha = new Date(iso);
-  return isNaN(fecha) ? String(iso) : fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function opcionesSelect(valores, elegido, textoVacio) {
+  return (textoVacio !== undefined ? '<option value="">' + esc(textoVacio) + '</option>' : '') +
+    valores.map(function (v) {
+      return '<option value="' + esc(v) + '"' + (v === elegido ? ' selected' : '') + '>' + esc(v) + '</option>';
+    }).join('');
 }
 
-function esDueno() {
-  const sesion = Sesion.leer();
-  return !!sesion && sesion.usuario.rol === 'dueno';
+/* ---------- Ventana emergente (formularios) ---------- */
+
+function abrirModal(html) {
+  cerrarModal();
+  const fondo = document.createElement('div');
+  fondo.className = 'modal-fondo';
+  fondo.id = 'modal';
+  fondo.innerHTML = '<div class="modal" role="dialog" aria-modal="true">' + html + '</div>';
+  fondo.addEventListener('click', function (e) { if (e.target === fondo) cerrarModal(); });
+  document.body.appendChild(fondo);
+  document.body.classList.add('con-modal');
+  const primero = fondo.querySelector('input, select, textarea');
+  if (primero) primero.focus();
+}
+
+function cerrarModal() {
+  const modal = document.getElementById('modal');
+  if (modal) modal.remove();
+  document.body.classList.remove('con-modal');
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') cerrarModal();
+});
+
+/* ---------- Fechas (siempre como texto "AAAA-MM-DD", hora local) ---------- */
+
+const NOMBRES_DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+function fechaATexto(fecha) {
+  return fecha.getFullYear() + '-' + String(fecha.getMonth() + 1).padStart(2, '0') + '-' + String(fecha.getDate()).padStart(2, '0');
+}
+
+function textoAFecha(texto) {
+  const p = String(texto).split('-').map(Number);
+  return new Date(p[0], p[1] - 1, p[2]);
+}
+
+function hoyTexto() {
+  return fechaATexto(new Date());
+}
+
+function sumarDias(texto, dias) {
+  const fecha = textoAFecha(texto);
+  fecha.setDate(fecha.getDate() + dias);
+  return fechaATexto(fecha);
+}
+
+function lunesDe(texto) {
+  const fecha = textoAFecha(texto);
+  return sumarDias(texto, -((fecha.getDay() + 6) % 7));
+}
+
+/** La semana "actual": sábado y domingo ya muestran la semana que viene. */
+function lunesSemanaActual() {
+  const dia = new Date().getDay();
+  const lunes = lunesDe(hoyTexto());
+  return dia === 0 || dia === 6 ? sumarDias(lunes, 7) : lunes;
+}
+
+function esDiaHabil(texto) {
+  const dia = textoAFecha(texto).getDay();
+  return dia >= 1 && dia <= 5;
+}
+
+/** "2026-10-01" → "01/10" */
+function diaMes(texto) {
+  const p = String(texto).split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] : String(texto);
+}
+
+/** "2026-10-01T22:55:00.000Z" o "2026-10-01" → "01/10/2026" */
+function formatearFecha(valor) {
+  if (!valor) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    const p = valor.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+  const fecha = new Date(valor);
+  return isNaN(fecha) ? String(valor) : fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }

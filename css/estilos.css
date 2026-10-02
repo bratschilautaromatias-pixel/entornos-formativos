@@ -140,7 +140,17 @@ input:focus, select:focus, textarea:focus {
   background: rgba(255, 255, 255, 0.2);
   white-space: nowrap;
 }
-.chip.sin-red { background: var(--ambar); color: #000; }
+.barra .chip-sync {
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.2);
+}
+.barra .chip-sync.sin-red,
+.barra .chip-sync.pendiente { background: var(--ambar); color: #000; }
+.barra .chip-sync.error { background: #ffcdd2; color: var(--rojo); }
 
 /* ===== Contenido ===== */
 .contenido {
@@ -264,6 +274,129 @@ input:focus, select:focus, textarea:focus {
   font-size: 0.9rem;
 }
 .tarjeta-info ul { margin: 8px 0 0; padding-left: 18px; }
+
+/* ===== Tareas de la semana ===== */
+.centrado { text-align: center; }
+
+.semana-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.semana-titulo { text-align: center; flex: 1; }
+@media (max-width: 480px) {
+  .solo-ancho { display: none; }
+  .semana-nav .boton.chico { padding: 8px 14px; font-size: 1.1rem; }
+}
+.semana-titulo strong { display: block; }
+.semana-titulo span { font-size: 0.85rem; color: var(--texto-suave); }
+
+.filtros {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+.filtros label { margin-bottom: 8px; }
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+.resumen div {
+  background: var(--tarjeta);
+  border-radius: 10px;
+  box-shadow: var(--sombra);
+  text-align: center;
+  padding: 10px 4px;
+}
+.resumen b { display: block; font-size: 1.4rem; }
+.resumen span { font-size: 0.75rem; color: var(--texto-suave); }
+.resumen .ok b { color: var(--verde); }
+.resumen .mal b { color: var(--rojo); }
+
+.avance { height: 10px; background: var(--borde); border-radius: 999px; overflow: hidden; }
+.avance-barra { height: 100%; background: var(--verde); transition: width 0.3s; }
+
+.bloque-atrasadas {
+  background: var(--rojo-claro);
+  border-radius: var(--radio);
+  padding: 12px 14px 4px;
+  margin: 18px 0;
+}
+.bloque-atrasadas h2 { color: var(--rojo); font-size: 1rem; margin: 0 0 2px; }
+.bloque-atrasadas > .ayuda { margin: 0 0 10px; display: block; }
+
+.dia { margin-top: 20px; }
+.dia h2 {
+  font-size: 1rem;
+  color: var(--verde-oscuro);
+  border-bottom: 2px solid var(--borde);
+  padding-bottom: 4px;
+  margin: 0 0 8px;
+}
+.dia.hoy h2 { border-bottom-color: var(--verde); }
+.sin-tareas { margin: 4px 0 0; }
+
+.tarea {
+  background: var(--tarjeta);
+  border-left: 5px solid var(--gris);
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.tarea.estado-realizada { border-left-color: var(--verde); }
+.tarea.estado-realizada .tarea-texto strong { text-decoration: line-through; color: var(--texto-suave); }
+.tarea.estado-incompleta { border-left-color: var(--ambar); }
+.tarea-texto { flex: 1 1 220px; min-width: 0; }
+.tarea-texto strong { display: block; overflow-wrap: anywhere; }
+.tarea-texto .notas { font-style: italic; }
+.tarea-acciones { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.estado-select { width: auto; margin-top: 0; padding: 6px 8px; font-size: 0.85rem; }
+.estado-chip {
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--verde-claro);
+}
+
+/* ===== Ventana emergente ===== */
+body.con-modal { overflow: hidden; }
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+}
+.modal {
+  background: var(--tarjeta);
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: var(--radio) var(--radio) 0 0;
+  padding: 20px 18px;
+}
+@media (min-width: 600px) {
+  .modal-fondo { align-items: center; }
+  .modal { border-radius: var(--radio); }
+}
+.modal h2 { margin: 0 0 14px; color: var(--verde-oscuro); font-size: 1.2rem; }
+.dos-columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-botones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.modal-botones .espacio { flex: 1; }
 
 /* ===== Pantalla en construcción ===== */
 .vacio {
