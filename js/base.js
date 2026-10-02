@@ -17,8 +17,52 @@ function iniciarApp() {
     if (typeof alActualizarDatos === 'function') alActualizarDatos();
   });
   Sincronizador.iniciar();
+  registrarTrabajadorSinConexion();
   mostrarPantalla();
   revisarSesion();
+}
+
+/**
+ * Activa el funcionamiento sin internet (sw.js) y avisa cuando hay una versión nueva de la app.
+ */
+function registrarTrabajadorSinConexion() {
+  if (!('serviceWorker' in navigator)) return;
+  let recargando = false;
+  const habiaVersionAnterior = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    // La primera vez que se instala no hace falta recargar; solo al pasar a una versión nueva
+    if (recargando || !habiaVersionAnterior) return;
+    recargando = true;
+    location.reload();
+  });
+
+  navigator.serviceWorker.register('sw.js').then(function (registro) {
+    if (registro.waiting && navigator.serviceWorker.controller) mostrarAvisoActualizacion(registro.waiting);
+    registro.addEventListener('updatefound', function () {
+      const nuevo = registro.installing;
+      nuevo.addEventListener('statechange', function () {
+        if (nuevo.state === 'installed' && navigator.serviceWorker.controller) mostrarAvisoActualizacion(nuevo);
+      });
+    });
+    // Revisar si hay versión nueva cada vez que se vuelve a la app
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') registro.update().catch(function () {});
+    });
+  }).catch(function () { /* sin soporte: la app funciona igual, pero no abre sin internet */ });
+}
+
+function mostrarAvisoActualizacion(trabajador) {
+  if (document.getElementById('aviso-version')) return;
+  const aviso = document.createElement('div');
+  aviso.id = 'aviso-version';
+  aviso.className = 'aviso-version';
+  aviso.innerHTML = '<span>Hay una versión nueva de la app.</span><button class="boton chico">Actualizar</button>';
+  aviso.querySelector('button').addEventListener('click', function () {
+    this.disabled = true;
+    this.textContent = 'Actualizando…';
+    trabajador.postMessage('actualizar');
+  });
+  document.body.appendChild(aviso);
 }
 
 function ir(ruta) {
