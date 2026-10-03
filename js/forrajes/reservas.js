@@ -22,7 +22,7 @@ function pantallaInventario() {
       .sort(function (a, b) { return nombreEspecie(f, a.especieId).localeCompare(nombreEspecie(f, b.especieId)); });
     html += (puedeEditar()
         ? '<div class="botones-alta"><button class="boton chico" onclick="formularioCompra()">+ Compra / ingreso</button>' +
-          '<button class="boton chico" onclick="formularioMovimiento()">± Movimiento</button></div>' : '') +
+          '<button class="boton chico" onclick="formularioMovimientoStock()">± Movimiento</button></div>' : '') +
       (proyeccion.length
         ? '<div class="tabla-desplazable"><table class="tabla"><thead><tr><th>Especie</th><th>Stock (kg)</th><th>Consumo (kg/día)</th><th>Días restantes</th></tr></thead><tbody>' +
             proyeccion.map(function (p) {
@@ -45,7 +45,7 @@ function pantallaInventario() {
           '<div class="movimiento-valor">' + numero(l._stock.kg) + ' kg' + (l._stock.unidades !== null ? '<br><span class="ayuda">' + numero(l._stock.unidades) + ' unid.</span>' : '') +
             (l._stock.kg <= 0 ? '<br><span class="ayuda">Agotado</span>' : '') + '</div>' +
           (puedeEditar() ? '<div class="movimiento-acciones">' +
-            '<button class="boton chico secundario" onclick="formularioMovimiento(null, \'' + esc(l.id) + '\')" title="Registrar movimiento">±</button>' +
+            '<button class="boton chico secundario" onclick="formularioMovimientoStock(null, \'' + esc(l.id) + '\')" title="Registrar movimiento">±</button>' +
             '<button class="boton chico secundario" onclick="formularioAnalisis(null, \'' + esc(l.id) + '\')" title="Cargar análisis">🧪</button>' +
             botonEditar('formularioCompra', l.id) + '</div>' : '') +
         '</div>';
@@ -98,7 +98,7 @@ async function formularioCompra(id) {
   });
 }
 
-async function formularioMovimiento(id, loteInventarioId) {
+async function formularioMovimientoStock(id, loteInventarioId) {
   const f = await cargarForrajes();
   const m = id ? f.movimientosInventarioPorId[id] : null;
   const opciones = opcionesLotesInventario(f, m ? m.loteInventarioId : loteInventarioId);
@@ -135,13 +135,13 @@ async function formularioMovimiento(id, loteInventarioId) {
 
 function htmlMovimientos(f) {
   const lista = f.movimientosInventario.slice().sort(porFechaDesc).slice(0, 200);
-  return (puedeEditar() ? '<button class="boton" onclick="formularioMovimiento()">± Registrar movimiento</button>' : '') +
+  return (puedeEditar() ? '<button class="boton" onclick="formularioMovimientoStock()">± Registrar movimiento</button>' : '') +
     (lista.length ? '<div class="tabla-desplazable"><table class="tabla"><thead><tr><th>Fecha</th><th>Lote</th><th>Tipo</th><th>Kg</th><th>Unid.</th><th>Motivo</th><th></th></tr></thead><tbody>' +
       lista.map(function (m) {
         const l = f.lotesInventarioPorId[m.loteInventarioId];
         return '<tr><td>' + formatearFecha(m.fecha) + '</td><td>' + (l ? esc(nombreEspecie(f, l.especieId)) : '—') + '</td><td>' + esc(m.tipoMovimiento) + '</td>' +
           '<td>' + (signoMovimiento(m) < 0 ? '−' : '+') + numero(Math.abs(Number(m.cantidadKg))) + '</td><td>' + (m.cantidadUnidades ? numero(m.cantidadUnidades) : '') + '</td>' +
-          '<td style="text-align:left">' + esc(m.motivo || '') + '</td><td>' + botonEditar('formularioMovimiento', m.id) + '</td></tr>';
+          '<td style="text-align:left">' + esc(m.motivo || '') + '</td><td>' + botonEditar('formularioMovimientoStock', m.id) + '</td></tr>';
       }).join('') + '</tbody></table></div>' : '<p class="vacio">Todavía no hay movimientos.</p>');
 }
 
