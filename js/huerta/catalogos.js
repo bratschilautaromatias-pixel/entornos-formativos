@@ -320,3 +320,78 @@ function pantallaClima() {
     }
   });
 }
+
+/* ---------- Lluvias (pluviómetro, solo parcelas a cielo abierto) ---------- */
+
+function pantallaLluviasHuerta() {
+  marcoHuerta('Lluvias · Huerta', 'huerta', function (h) {
+    const grupos = {};
+    h.lluviasHuerta.forEach(function (r) { (grupos[r.grupoId || r.id] = grupos[r.grupoId || r.id] || []).push(r); });
+    const lecturas = Object.keys(grupos).map(function (k) { return grupos[k]; })
+      .sort(function (a, b) { return b[0].fecha.localeCompare(a[0].fecha); });
+    const anio = String(new Date().getFullYear());
+    const porDia = {};
+    h.lluviasHuerta.filter(function (r) { return r.fecha.slice(0, 4) === anio; }).forEach(function (r) {
+      porDia[r.fecha] = Math.max(porDia[r.fecha] || 0, Number(r.cantidadMm) || 0);
+    });
+    const totalAnio = Object.keys(porDia).reduce(function (t, d) { return t + porDia[d]; }, 0);
+    const cubiertas = h.parcelas.filter(function (p) { return p.bajoCubierta === 'true'; });
+    return (puedeEditar() ? '<button class="boton" onclick="formularioLluviaHuerta()">🌧 Registrar lluvia</button>' : '') +
+      '<div class="totales"><div><span>Lluvia ' + anio + ' (pluviómetro)</span><b>' + numero(totalAnio) + ' mm</b><small>' + Object.keys(porDia).length + ' días con lluvia</small></div></div>' +
+      '<p class="ayuda">La lluvia se carga solo para las parcelas a cielo abierto' +
+        (cubiertas.length ? '. Las parcelas bajo cubierta (' + cubiertas.map(function (p) { return esc(p.nombre); }).join(', ') + ') no reciben lluvia: su agua es el riego.' : '.') +
+        ' Con lecturas del pluviómetro, el cálculo de riego usa esa lluvia en lugar de la estimada.</p>' +
+      (lecturas.length ? lecturas.map(function (g) {
+        const r = g[0];
+        return '<div class="movimiento"><div class="movimiento-texto"><strong>' + numero(r.cantidadMm) + ' mm · ' + formatearFecha(r.fecha) + '</strong>' +
+          '<span class="ayuda">' + g.map(function (x) { return esc(nombreParcela(h, x.parcelaId)); }).join(', ') + '</span>' +
+          (r.notas ? '<span class="ayuda notas">' + esc(r.notas) + '</span>' : '') + '</div>' +
+          (puedeEditar() ? '<div class="movimiento-acciones"><button class="boton chico secundario" onclick="formularioLluviaHuerta(\'' + esc(r.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+        '</div>';
+      }).join('') : '<p class="vacio">Todavía no hay lluvias cargadas.</p>');
+  });
+}
+
+async function formularioLluviaHuerta(id) {
+  const h = await cargarHuerta();
+  const r = id ? h.lluviasHuertaPorId[id] : null;
+  const delGrupo = r ? h.lluviasHuerta.filter(function (x) { return r.grupoId ? x.grupoId === r.grupoId : x.id === r.id; }) : [];
+  const abiertas = h.parcelas.filter(function (p) {
+    return p.bajoCubierta !== 'true' && (p.activa !== 'false' || delGrupo.some(function (x) { return x.parcelaId === p.id; }));
+  });
+  if (!abiertas.length) return alert('No hay parcelas a cielo abierto. Las parcelas bajo cubierta no reciben lluvia.');
+  await abrirFormulario({
+    tabla: 'LluviasHuerta',
+    titulo: r ? 'Editar lluvia' : 'Registrar lluvia (pluviómetro)',
+    registro: r,
+    valores: r ? { parcelas: delGrupo.map(function (x) { return x.parcelaId; }).join(','), fecha: r.fecha, cantidadMm: r.cantidadMm, notas: r.notas }
+      : { fecha: hoyTexto(), parcelas: abiertas.map(function (p) { return p.id; }).join(',') },
+    ayuda: 'Elegí en qué parcelas a cielo abierto cayó esta lluvia: se guarda para cada una.',
+    campos: [
+      { nombre: 'fecha', etiqueta: 'Fecha', tipo: 'fecha', requerido: true, medio: true },
+      { nombre: 'cantidadMm', etiqueta: 'Milímetros', tipo: 'numero', requerido: true, minimo: 0, medio: true },
+      { nombre: 'parcelas', etiqueta: 'Parcelas', tipo: 'casillas', requerido: true, botonTodos: true,
+        opciones: abiertas.map(function (p) { return { valor: p.id, texto: p.nombre }; }) },
+      { nombre: 'notas', etiqueta: 'Notas', tipo: 'area' }
+    ],
+    preguntaEliminar: '¿Eliminar esta lectura de lluvia' + (delGrupo.length > 1 ? ' de las ' + delGrupo.length + ' parcelas' : '') + '?',
+    guardar: async function (d) {
+      const parcelas = d.parcelas.split(',').filter(Boolean);
+      const grupoId = (r && r.grupoId) || (parcelas.length > 1 ? idAlAzar() : '');
+      const existentes = {};
+      delGrupo.forEach(function (x) { existentes[x.parcelaId] = x; });
+      let primero = null;
+      for (const parcelaId of parcelas) {
+        const registro = { parcelaId: parcelaId, fecha: d.fecha, cantidadMm: d.cantidadMm, notas: d.notas, grupoId: grupoId };
+        if (existentes[parcelaId]) { registro.id = existentes[parcelaId].id; delete existentes[parcelaId]; }
+        const g = await Datos.guardar('LluviasHuerta', registro);
+        if (!primero) primero = g;
+      }
+      for (const sobra of Object.values(existentes)) await Datos.eliminar('LluviasHuerta', sobra.id);
+      return primero;
+    },
+    eliminar: async function () {
+      for (const x of delGrupo) await Datos.eliminar('LluviasHuerta', x.id);
+    }
+  });
+}

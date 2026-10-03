@@ -15,7 +15,7 @@ const HUERTA = {
 
 /** Trae todas las tablas de Huerta del equipo, con índices por id. */
 async function cargarHuerta() {
-  const nombres = ['Parcelas', 'Lomos', 'Cultivos', 'Almacigos', 'Siembras', 'Riegos', 'Tratamientos', 'Cosechas', 'AnalisisSuelo'];
+  const nombres = ['Parcelas', 'Lomos', 'Cultivos', 'Almacigos', 'Siembras', 'Riegos', 'Tratamientos', 'Cosechas', 'AnalisisSuelo', 'LluviasHuerta'];
   const listas = await Promise.all(nombres.map(function (t) { return Datos.listar(t); }));
   const h = {};
   nombres.forEach(function (t, i) {
@@ -170,6 +170,38 @@ async function obtenerClima(ubicacion) {
   }
 }
 
+/* ---------- Pluviómetro de la huerta ---------- */
+
+function estaBajoCubierta(h, parcelaId) {
+  const p = h.parcelasPorId[parcelaId];
+  return !!p && p.bajoCubierta === 'true';
+}
+
+/** Lluvia del pluviómetro por día para una parcela: { 'AAAA-MM-DD': mm }. */
+function lluviasPluviometro(h, parcelaId) {
+  const porDia = {};
+  h.lluviasHuerta.filter(function (r) { return r.parcelaId === parcelaId; }).forEach(function (r) {
+    porDia[r.fecha] = (porDia[r.fecha] || 0) + (Number(r.cantidadMm) || 0);
+  });
+  return porDia;
+}
+
+/**
+ * Lluvia caída en una parcela entre dos fechas.
+ * Devuelve { mm, fuente: 'Bajo cubierta' | 'Pluviómetro' | 'Servicio de clima' | null }.
+ * Se usa el pluviómetro si hay lecturas en ese lapso; si no, el clima (si se pasa) — igual que en Forrajes.
+ */
+function lluviaParcela(h, parcelaId, desde, hasta, diasClima) {
+  if (estaBajoCubierta(h, parcelaId)) return { mm: null, fuente: 'Bajo cubierta' };
+  const lecturas = h.lluviasHuerta.filter(function (r) { return r.parcelaId === parcelaId && r.fecha >= desde && r.fecha <= hasta; });
+  if (lecturas.length) return { mm: lecturas.reduce(function (t, r) { return t + (Number(r.cantidadMm) || 0); }, 0), fuente: 'Pluviómetro' };
+  if (diasClima && diasClima.length) {
+    const dias = diasClima.filter(function (d) { return d.fecha >= desde && d.fecha <= hasta; });
+    if (dias.length) return { mm: dias.reduce(function (t, d) { return t + d.lluvia; }, 0), fuente: 'Servicio de clima' };
+  }
+  return { mm: null, fuente: null };
+}
+
 /* ---------- Riego: balance de agua en el suelo ---------- */
 
 /** Agua útil aproximada (mm de agua por metro de suelo) según la textura, si la parcela no tiene el dato. */
@@ -216,6 +248,11 @@ function calcularRiegoSiembra(h, s, diasClima) {
   const superficie = superficieSiembraM2(h, s);
   const hoy = hoyTexto();
   const cubierta = condicionesCubierta(h, s);
+  // Si la parcela tiene lecturas de pluviómetro en estos días, se usan esas (un día sin lectura = no llovió);
+  // si no, la lluvia estimada por el servicio de clima.
+  const pluviometro = lluviasPluviometro(h, s.parcelaId);
+  const primerDia = diasClima.length ? diasClima[0].fecha : '';
+  const usaPluviometro = Object.keys(pluviometro).some(function (f) { return f >= primerDia && f <= hoy; });
   const aplicadoPorFecha = {};
   h.riegos.filter(function (r) { return r.siembraId === s.id; }).forEach(function (r) {
     aplicadoPorFecha[r.fecha] = (aplicadoPorFecha[r.fecha] || 0) + (Number(r.laminaMm) || 0);
@@ -230,7 +267,8 @@ function calcularRiegoSiembra(h, s, diasClima) {
       const capacidad = capacidadAguaSuelo(h, s, dias);
       const et0 = d.et0 * cubierta.factor;
       const etc = et0 * ek.kc;
-      const lluviaEfectiva = cubierta.cubierta ? 0 : d.lluvia * 0.8;
+      const lluviaDia = usaPluviometro && d.fecha <= hoy ? (pluviometro[d.fecha] || 0) : d.lluvia;
+      const lluviaEfectiva = cubierta.cubierta ? 0 : lluviaDia * 0.8;
       const aplicado = aplicadoPorFecha[d.fecha] || 0;
       faltante = Math.min(capacidad.total, Math.max(0, faltante + etc - lluviaEfectiva - aplicado));
       return {
@@ -248,5 +286,5 @@ function calcularRiegoSiembra(h, s, diasClima) {
   const proximo = deHoy && !deHoy.regar
     ? filas.find(function (f) { return f.pronostico && f.regar; }) || null
     : null;
-  return { filas: filas, hoy: deHoy, proximoRiego: proximo, superficie: superficie, cubierta: cubierta };
+  return { filas: filas, hoy: deHoy, proximoRiego: proximo, superficie: superficie, cubierta: cubierta, usaPluviometro: usaPluviometro };
 }

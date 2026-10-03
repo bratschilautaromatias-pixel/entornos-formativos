@@ -5,6 +5,7 @@
 const SECCIONES_HUERTA = [
   { clave: 'siembras', nombre: 'Siembras', icono: '🌱', detalle: 'Qué hay sembrado en cada parcela y lomo' },
   { clave: 'riego', nombre: 'Riego', icono: '💧', detalle: 'Cuánto regar según el clima y la etapa del cultivo' },
+  { clave: 'lluvias', nombre: 'Lluvias', icono: '🌧', detalle: 'Pluviómetro de las parcelas a cielo abierto' },
   { clave: 'cosechas', nombre: 'Cosechas', icono: '🧺', detalle: 'Kilos cosechados por siembra' },
   { clave: 'tratamientos', nombre: 'Tratamientos', icono: '🧪', detalle: 'Fitosanitarios, fertilización y carencias' },
   { clave: 'almacigos', nombre: 'Almácigos', icono: '🌿', detalle: 'Bandejas, germinación y trasplante' },
@@ -21,7 +22,7 @@ PANTALLAS.huerta = function (parametro) {
   const pantallas = {
     siembras: pantallaSiembras, siembra: pantallaFichaSiembra, riego: pantallaRiego, cosechas: pantallaCosechas,
     tratamientos: pantallaTratamientos, almacigos: pantallaAlmacigos, parcelas: pantallaParcelas,
-    suelo: pantallaSuelo, cultivos: pantallaCultivos, cultivo: pantallaFichaCultivo, clima: pantallaClima
+    suelo: pantallaSuelo, cultivos: pantallaCultivos, cultivo: pantallaFichaCultivo, clima: pantallaClima, lluvias: pantallaLluviasHuerta
   };
   if (pantallas[seccion]) return pantallas[seccion](id);
   pantallaMenuHuerta();

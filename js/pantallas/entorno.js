@@ -26,6 +26,18 @@ PANTALLAS.entorno = function (clave) {
           '<span><span class="nombre">Economía</span>' +
           '<span class="detalle">Ingresos, egresos y remitos internos</span></span>' +
         '</button>' +
+        '<p class="seccion-titulo">Dashboards e informes (Excel y PDF)</p>' +
+        '<button class="cuadro ancho" onclick="ir(\'productivo/' + entorno.clave + '\')">' +
+          '<span class="icono">📊</span>' +
+          '<span><span class="nombre">Dashboard de producción</span>' +
+          '<span class="detalle">Gráficos e informe productivo</span></span>' +
+        '</button>' +
+        '<button class="cuadro ancho" onclick="ir(\'economico/' + entorno.clave + '\')">' +
+          '<span class="icono">💹</span>' +
+          '<span><span class="nombre">Dashboard económico</span>' +
+          '<span class="detalle">Gráficos e informe económico</span></span>' +
+        '</button>' +
+        '<p class="seccion-titulo">Para todos los entornos</p>' +
         '<button class="cuadro ancho" onclick="ir(\'tareas\')">' +
           '<span class="icono">📋</span>' +
           '<span><span class="nombre">Tareas de la semana</span>' +

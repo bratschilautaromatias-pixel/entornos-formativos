@@ -75,7 +75,8 @@ function pantallaRiego() {
               '<td>' + d.faltante.toFixed(1) + '</td><td>' + (d.litros === null ? '—' : numero(Math.round(d.litros))) + '</td></tr>';
           }).join('') +
         '</tbody></table></div>' +
-        '<p class="ayuda">* Pronóstico. Valores en mm. Consumo = ET0 × Kc (como en Surco); lluvia efectiva = 80% de la lluvia. ' +
+        '<p class="ayuda">* Pronóstico. Valores en mm. Consumo = ET0 × Kc (como en Surco); lluvia efectiva = 80% de la lluvia' +
+          (calculo.cubierta.cubierta ? '' : calculo.usaPluviometro ? ' (del pluviómetro de la huerta)' : ' (estimada por el servicio de clima: cargá el pluviómetro para más precisión)') + '. ' +
           'El agua que sobra de un riego o una lluvia queda en el suelo y se gasta los días siguientes. ' +
           'Superficie usada: ' + (calculo.superficie ? numero(calculo.superficie) + ' m²' : '<b>sin dato</b>') +
           ' · Clima de ' + esc(ubicacion.origen) + ' (Open-Meteo). Se supone el suelo lleno el día de la siembra' +

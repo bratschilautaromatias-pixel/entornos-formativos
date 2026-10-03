@@ -4,7 +4,7 @@
  * IMPORTANTE: cada vez que se cambia cualquier archivo de la app hay que subir el número de VERSION;
  * así los equipos se enteran de que hay una versión nueva y muestran el aviso "Actualizar".
  */
-const VERSION = 'v9';
+const VERSION = 'v11';
 const CACHE = 'entornos-formativos-' + VERSION;
 
 const ARCHIVOS = [
@@ -30,6 +30,12 @@ const ARCHIVOS = [
   'js/forrajes/campo.js',
   'js/forrajes/reservas.js',
   'js/forrajes/raciones.js',
+  'js/informes/graficos.js',
+  'js/informes/excel.js',
+  'js/informes/comun.js',
+  'js/informes/economico.js',
+  'js/informes/productivo-huerta.js',
+  'js/informes/productivo-forrajes.js',
   'iconos/icono-192.png',
   'iconos/icono-512.png',
   'iconos/icono-maskable-512.png',
