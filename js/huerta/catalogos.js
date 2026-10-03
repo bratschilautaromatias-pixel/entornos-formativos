@@ -48,7 +48,8 @@ async function formularioParcela(id) {
       { nombre: 'tipoSuelo', etiqueta: 'Tipo de suelo', tipo: 'select', opciones: HUERTA.tiposSuelo, medio: true },
       { nombre: 'latitud', etiqueta: 'Latitud', tipo: 'numero', medio: true, seccion: 'Ubicación (opcional, para el clima)', ayuda: 'Si la dejás vacía se usa la de la escuela' },
       { nombre: 'longitud', etiqueta: 'Longitud', tipo: 'numero', medio: true },
-      { nombre: 'capacidadCampoMm', etiqueta: 'Capacidad de campo (mm)', tipo: 'numero', minimo: 0, medio: true, seccion: 'Datos de suelo (opcional)' },
+      { nombre: 'capacidadCampoMm', etiqueta: 'Capacidad de campo (mm)', tipo: 'numero', minimo: 0, medio: true, seccion: 'Datos de suelo (opcional)',
+        ayuda: 'mm de agua por metro de suelo. Si no los sabés, se estiman por el tipo de suelo' },
       { nombre: 'puntoMarchitezMm', etiqueta: 'Punto de marchitez (mm)', tipo: 'numero', minimo: 0, medio: true },
       { nombre: 'activa', etiqueta: 'Parcela activa (en uso)', tipo: 'sino' },
       { nombre: 'notas', etiqueta: 'Notas', tipo: 'area' }

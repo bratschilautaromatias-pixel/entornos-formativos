@@ -230,6 +230,8 @@ function htmlLineaRiego(r) {
   const cantidad = [Number(r.litros) ? numero(r.litros) + ' L' : '', Number(r.laminaMm) ? numero(r.laminaMm) + ' mm' : '']
     .filter(Boolean).join(' · ') || 'Sin cantidad';
   return '<strong>' + cantidad + '</strong> · ' + esc(r.metodo || '') + ' · ' + formatearFecha(r.fecha) +
+    (r.grupoId ? '<br><span class="ayuda">Parte de un riego de toda la parcela (' + numero(r.totalGrupo) + ' ' +
+      (r.unidadCarga === 'mm' ? 'mm' : 'L') + ' en total)</span>' : '') +
     (r.notas ? '<br><span class="ayuda">' + esc(r.notas) + '</span>' : '');
 }
 

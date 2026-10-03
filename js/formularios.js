@@ -11,6 +11,9 @@
  *   recalcularCon: ['parcelaId'] (vuelve a pedir las opciones cuando cambia otro campo),
  *   seccion: 'Título de grupo' (muestra un subtítulo antes del campo)
  * }
+ * Opciones del formulario: tabla, titulo, registro, valores, campos, ayuda, validar, antesDeGuardar,
+ * guardar (reemplaza el guardado común), despuesDeGuardar, alEliminar (devuelve un error o nada),
+ * eliminar (reemplaza el borrado común), preguntaEliminar, textoEliminar.
  */
 
 async function abrirFormulario(op) {
@@ -69,7 +72,8 @@ async function abrirFormulario(op) {
         const error = await op.alEliminar(existente);
         if (error) return mostrarMensaje('mensaje-generico', error, 'error');
       }
-      await Datos.eliminar(op.tabla, existente.id);
+      if (op.eliminar) await op.eliminar(existente);
+      else await Datos.eliminar(op.tabla, existente.id);
       cerrarModal();
     });
   }
@@ -85,7 +89,13 @@ async function abrirFormulario(op) {
     }
     if (op.antesDeGuardar) await op.antesDeGuardar(datos, existente);
     if (existente) datos.id = existente.id;
-    const guardado = await Datos.guardar(op.tabla, datos);
+    let guardado;
+    try {
+      // "guardar" permite reemplazar el guardado común (por ejemplo, cuando un formulario crea varios registros)
+      guardado = op.guardar ? await op.guardar(datos, existente) : await Datos.guardar(op.tabla, datos);
+    } catch (e) {
+      return mostrarMensaje('mensaje-generico', e.message, 'error');
+    }
     cerrarModal();
     if (op.despuesDeGuardar) await op.despuesDeGuardar(guardado, existente);
   });

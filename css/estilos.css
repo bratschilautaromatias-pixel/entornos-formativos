@@ -325,6 +325,8 @@ input:focus, select:focus, textarea:focus {
 
 .avance { height: 10px; background: var(--borde); border-radius: 999px; overflow: hidden; }
 .avance-barra { height: 100%; background: var(--verde); transition: width 0.3s; }
+.avance-barra.bajo { background: var(--rojo); }
+.texto-rojo { color: var(--rojo); font-weight: 700; }
 
 .bloque-atrasadas {
   background: var(--rojo-claro);

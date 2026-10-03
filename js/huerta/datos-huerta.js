@@ -170,31 +170,70 @@ async function obtenerClima(ubicacion) {
   }
 }
 
+/* ---------- Riego: balance de agua en el suelo ---------- */
+
+/** Agua útil aproximada (mm de agua por metro de suelo) según la textura, si la parcela no tiene el dato. */
+const AGUA_UTIL_POR_SUELO = { 'Arenoso': 70, 'Franco arenoso': 110, 'Franco': 150, 'Franco arcilloso': 170, 'Arcilloso': 190 };
+
 /**
- * Necesidad de riego por día para una siembra (igual que Surco):
- * ETc = ET0 × Kc · lluvia efectiva = 80% de la lluvia · lámina neta = ETc − lluvia efectiva − riego aplicado.
+ * Cuánta agua puede guardar el suelo donde están las raíces (mm).
+ * Total = agua útil por metro × profundidad de raíces (que crece hasta su máximo al terminar la etapa de desarrollo).
+ * Se recomienda regar cuando se gastó la mitad (agua "fácilmente aprovechable", criterio FAO-56 con p = 0,5).
+ */
+function capacidadAguaSuelo(h, s, dias) {
+  const p = h.parcelasPorId[s.parcelaId] || {};
+  const cultivo = h.cultivosPorId[s.cultivoId] || {};
+  const cc = Number(p.capacidadCampoMm);
+  const pm = Number(p.puntoMarchitezMm);
+  const porMetro = cc > pm && pm >= 0 && cc > 0 ? cc - pm : (AGUA_UTIL_POR_SUELO[p.tipoSuelo] || 150);
+  const raizMaxima = Number(cultivo.profundidadRaicesM) || 0.4;
+  const diasCrecimiento = (Number(cultivo.diasEtapaInicial) || 0) + (Number(cultivo.diasEtapaDesarrollo) || 0);
+  const fraccion = diasCrecimiento > 0 ? Math.min(1, Math.max(0.25, dias / diasCrecimiento)) : 1;
+  const raiz = Math.max(0.15, raizMaxima * fraccion);
+  const total = porMetro * raiz;
+  return { total: total, facil: total * 0.5, raiz: raiz, porMetro: porMetro };
+}
+
+/**
+ * Balance diario de agua para una siembra:
+ *   consumo del cultivo (ETc = ET0 × Kc, igual que Surco) − 80% de la lluvia − riegos registrados.
+ * El agua que sobra queda guardada en el suelo (hasta que se llena) y se va gastando los días siguientes.
+ * Se supone el suelo lleno el día de la siembra (o el primer día con datos de clima, si la siembra es más vieja).
  */
 function calcularRiegoSiembra(h, s, diasClima) {
   const cultivo = h.cultivosPorId[s.cultivoId];
   const superficie = superficieSiembraM2(h, s);
+  const hoy = hoyTexto();
   const aplicadoPorFecha = {};
   h.riegos.filter(function (r) { return r.siembraId === s.id; }).forEach(function (r) {
     aplicadoPorFecha[r.fecha] = (aplicadoPorFecha[r.fecha] || 0) + (Number(r.laminaMm) || 0);
   });
-  return diasClima
+
+  let faltante = 0; // mm que faltan para que el suelo vuelva a estar lleno
+  const filas = diasClima
     .filter(function (d) { return d.fecha >= s.fechaSiembra; })
     .map(function (d) {
       const dias = diasEntre(s.fechaSiembra, d.fecha);
       const ek = etapaYKc(cultivo, dias);
+      const capacidad = capacidadAguaSuelo(h, s, dias);
       const etc = d.et0 * ek.kc;
       const lluviaEfectiva = d.lluvia * 0.8;
       const aplicado = aplicadoPorFecha[d.fecha] || 0;
-      const lamina = Math.max(0, etc - lluviaEfectiva - aplicado);
+      faltante = Math.min(capacidad.total, Math.max(0, faltante + etc - lluviaEfectiva - aplicado));
       return {
         fecha: d.fecha, dias: dias, etapa: ek.etapa, kc: ek.kc, et0: d.et0, etc: etc,
-        lluviaEfectiva: lluviaEfectiva, aplicado: aplicado, lamina: lamina,
-        litros: superficie > 0 ? lamina * superficie : null,
-        pronostico: d.fecha > hoyTexto()
+        lluviaEfectiva: lluviaEfectiva, aplicado: aplicado,
+        faltante: faltante, capacidad: capacidad.total, facil: capacidad.facil, raiz: capacidad.raiz,
+        porcentajeAgua: capacidad.total > 0 ? Math.round((1 - faltante / capacidad.total) * 100) : 100,
+        regar: faltante >= capacidad.facil,
+        litros: superficie > 0 ? faltante * superficie : null,
+        pronostico: d.fecha > hoy
       };
     });
+
+  const deHoy = filas.find(function (f) { return f.fecha === hoy; }) || null;
+  const proximo = deHoy && !deHoy.regar
+    ? filas.find(function (f) { return f.pronostico && f.regar; }) || null
+    : null;
+  return { filas: filas, hoy: deHoy, proximoRiego: proximo, superficie: superficie };
 }

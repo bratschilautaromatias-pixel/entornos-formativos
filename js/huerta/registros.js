@@ -24,37 +24,58 @@ function pantallaRiego() {
     if (!siembraRiego) return html + '<p class="vacio">No hay siembras activas.</p>';
 
     const s = h.siembrasPorId[siembraRiego];
-    const superficie = superficieSiembraM2(h, s);
     if (puedeEditar()) html += '<button class="boton" onclick="formularioRiego(null, siembraRiego)">💧 Registrar riego</button>';
 
     try {
       const ubicacion = await ubicacionClima(h.parcelasPorId[s.parcelaId]);
       const clima = await obtenerClima(ubicacion);
       const calculo = calcularRiegoSiembra(h, s, clima.dias);
-      const hoy = calculo.find(function (d) { return d.fecha === hoyTexto(); });
-      const ultimos = calculo.filter(function (d) { return !d.pronostico; }).slice(-7);
-      const deficit7 = ultimos.reduce(function (t, d) { return t + d.lamina; }, 0);
-      const proximos = calculo.filter(function (d) { return d.pronostico; });
+      const hoy = calculo.hoy;
+      const litros = function (f) { return f && f.litros !== null ? numero(Math.round(f.litros)) + ' L' : ''; };
 
+      let recomendacion;
+      if (!hoy) recomendacion = '<div class="aviso">No hay datos de clima para hoy.</div>';
+      else if (hoy.regar) {
+        recomendacion = '<div class="aviso error">💧 <b>Regar hoy</b>: faltan ' + hoy.faltante.toFixed(1) + ' mm' +
+          (litros(hoy) ? ' (unos <b>' + litros(hoy) + '</b>)' : '') + ' para volver a llenar el suelo.</div>';
+      } else if (calculo.proximoRiego) {
+        recomendacion = '<div class="aviso">✅ Hoy no hace falta regar. <b>Próximo riego: ' +
+          NOMBRES_DIAS[textoAFecha(calculo.proximoRiego.fecha).getDay()].toLowerCase() + ' ' + diaMes(calculo.proximoRiego.fecha) + '</b>' +
+          ' (según el pronóstico), con unos ' + calculo.proximoRiego.faltante.toFixed(1) + ' mm' +
+          (litros(calculo.proximoRiego) ? ' / ' + litros(calculo.proximoRiego) : '') + '.</div>';
+      } else {
+        recomendacion = '<div class="aviso">✅ Con el agua que tiene el suelo y el pronóstico, <b>no hace falta regar en los próximos 7 días</b>.</div>';
+      }
+
+      const visibles = calculo.filas.filter(function (f) { return f.fecha >= sumarDias(hoyTexto(), -10); });
       html += (clima.sinConexion ? '<div class="aviso">Sin conexión: se muestra el último clima guardado (' + formatearFecha(clima.actualizado) + ').</div>' : '') +
-        '<div class="resumen">' +
-          '<div><b>' + (hoy ? hoy.lamina.toFixed(1) : '—') + '</b><span>mm a reponer hoy</span></div>' +
-          '<div><b>' + (hoy && hoy.litros !== null ? numero(Math.round(hoy.litros)) : '—') + '</b><span>litros hoy</span></div>' +
-          '<div class="' + (deficit7 > 10 ? 'mal' : '') + '"><b>' + deficit7.toFixed(1) + '</b><span>mm faltantes (7 días)</span></div>' +
-          '<div><b>' + (hoy ? esc(hoy.etapa) : '—') + '</b><span>Etapa' + (hoy ? ' · Kc ' + hoy.kc.toFixed(2) : '') + '</span></div>' +
-        '</div>' +
-        '<p class="ayuda">Superficie usada: ' + (superficie ? numero(superficie) + ' m²' : '<b>sin dato</b> (cargá la superficie del lomo o de la siembra para calcular litros)') +
-        ' · Clima de ' + esc(ubicacion.origen) + ' (Open-Meteo). Cálculo: ETc = ET0 × Kc; se descuenta el 80% de la lluvia y el riego ya registrado.</p>' +
+        recomendacion +
+        (hoy
+          ? '<div class="resumen">' +
+              '<div class="' + (hoy.regar ? 'mal' : 'ok') + '"><b>' + hoy.porcentajeAgua + '%</b><span>Agua en el suelo</span></div>' +
+              '<div><b>' + hoy.faltante.toFixed(1) + '</b><span>mm faltantes</span></div>' +
+              '<div><b>' + hoy.etc.toFixed(1) + '</b><span>mm/día que consume</span></div>' +
+              '<div><b>' + esc(hoy.etapa) + '</b><span>Etapa · Kc ' + hoy.kc.toFixed(2) + '</span></div>' +
+            '</div>' +
+            '<div class="avance"><div class="avance-barra' + (hoy.regar ? ' bajo' : '') + '" style="width:' + hoy.porcentajeAgua + '%"></div></div>' +
+            '<p class="ayuda centrado">Se riega cuando el agua del suelo baja del 50%. El suelo guarda hasta ' + hoy.capacidad.toFixed(0) +
+              ' mm con raíces de ' + Math.round(hoy.raiz * 100) + ' cm.</p>'
+          : '') +
         '<div class="tabla-desplazable"><table class="tabla">' +
-          '<thead><tr><th>Día</th><th>ET0</th><th>Kc</th><th>ETc</th><th>Lluvia ef.</th><th>Regado</th><th>Falta (mm)</th><th>Litros</th></tr></thead><tbody>' +
-          ultimos.concat(proximos).map(function (d) {
+          '<thead><tr><th>Día</th><th>ET0</th><th>Kc</th><th>Consumo</th><th>Lluvia ef.</th><th>Regado</th><th>Agua suelo</th><th>Faltan</th><th>Litros</th></tr></thead><tbody>' +
+          visibles.map(function (d) {
             return '<tr class="' + (d.pronostico ? 'pronostico' : '') + (d.fecha === hoyTexto() ? ' hoy' : '') + '">' +
               '<td>' + diaMes(d.fecha) + (d.pronostico ? ' *' : '') + '</td><td>' + d.et0.toFixed(1) + '</td><td>' + d.kc.toFixed(2) + '</td>' +
-              '<td>' + d.etc.toFixed(1) + '</td><td>' + d.lluviaEfectiva.toFixed(1) + '</td><td>' + d.aplicado.toFixed(1) + '</td>' +
-              '<td><b>' + d.lamina.toFixed(1) + '</b></td><td>' + (d.litros === null ? '—' : numero(Math.round(d.litros))) + '</td></tr>';
+              '<td>' + d.etc.toFixed(1) + '</td><td>' + d.lluviaEfectiva.toFixed(1) + '</td><td>' + (d.aplicado ? d.aplicado.toFixed(1) : '—') + '</td>' +
+              '<td class="' + (d.regar ? 'texto-rojo' : '') + '">' + d.porcentajeAgua + '%</td>' +
+              '<td>' + d.faltante.toFixed(1) + '</td><td>' + (d.litros === null ? '—' : numero(Math.round(d.litros))) + '</td></tr>';
           }).join('') +
         '</tbody></table></div>' +
-        '<p class="ayuda">* Pronóstico. ET0 = evapotranspiración de referencia (mm/día).</p>';
+        '<p class="ayuda">* Pronóstico. Valores en mm. Consumo = ET0 × Kc (como en Surco); lluvia efectiva = 80% de la lluvia. ' +
+          'El agua que sobra de un riego o una lluvia queda en el suelo y se gasta los días siguientes. ' +
+          'Superficie usada: ' + (calculo.superficie ? numero(calculo.superficie) + ' m²' : '<b>sin dato</b>') +
+          ' · Clima de ' + esc(ubicacion.origen) + ' (Open-Meteo). Se supone el suelo lleno el día de la siembra' +
+          (s.fechaSiembra < (clima.dias[0] || {}).fecha ? ' o el ' + formatearFecha(clima.dias[0].fecha) + ' (primer día con datos)' : '') + '.</p>';
     } catch (e) {
       html += '<div class="aviso error">' + esc(e.message) + '</div>';
     }
@@ -64,40 +85,108 @@ function pantallaRiego() {
   });
 }
 
+/** Siembras activas de una parcela, con la parte de la superficie que le toca a cada una. */
+function repartoParcela(h, parcelaId) {
+  const siembras = h.siembras.filter(function (s) { return s.parcelaId === parcelaId && HUERTA.activas.indexOf(s.estado) !== -1; });
+  const superficies = siembras.map(function (s) { return superficieSiembraM2(h, s); });
+  const total = superficies.reduce(function (t, x) { return t + x; }, 0);
+  return siembras.map(function (s, i) {
+    return { siembra: s, superficie: superficies[i], parte: total > 0 ? superficies[i] / total : 1 / siembras.length };
+  });
+}
+
+/** Litros y mm a partir de lo cargado (1 mm sobre 1 m² = 1 litro). */
+function convertirRiego(cantidad, unidad, superficie) {
+  const redondear = function (x) { return Math.round(x * 100) / 100; };
+  if (unidad === 'mm') return { laminaMm: String(cantidad), litros: superficie ? String(redondear(cantidad * superficie)) : '' };
+  return { litros: String(redondear(cantidad)), laminaMm: superficie ? String(redondear(cantidad / superficie)) : '' };
+}
+
 async function formularioRiego(id, siembraId) {
   const h = await cargarHuerta();
   const r = id ? h.riegosPorId[id] : null;
+  const esGrupo = !!(r && r.grupoId);
+  const parcelasConSiembras = h.parcelas.filter(function (p) { return repartoParcela(h, p.id).length; });
   const valores = r
-    ? Object.assign({}, r, { cantidad: r.unidadCarga === 'mm' ? r.laminaMm : r.litros })
-    : { fecha: hoyTexto(), siembraId: siembraId || siembraRiego || '', metodo: 'Manual', unidadCarga: 'litros' };
+    ? Object.assign({}, r, {
+        alcance: esGrupo ? 'parcela' : 'siembra',
+        destinoId: esGrupo ? r.parcelaGrupoId : r.siembraId,
+        cantidad: esGrupo ? r.totalGrupo : (r.unidadCarga === 'mm' ? r.laminaMm : r.litros)
+      })
+    : { alcance: 'siembra', destinoId: siembraId || siembraRiego || '', fecha: hoyTexto(), metodo: 'Goteo', unidadCarga: 'litros' };
+
   await abrirFormulario({
     tabla: 'Riegos',
     titulo: r ? 'Editar riego' : 'Registrar riego',
     registro: r,
     valores: valores,
-    ayuda: 'Cargá la cantidad en litros o en milímetros: la otra medida se calcula con la superficie.',
+    ayuda: 'Cargá la cantidad en litros o en milímetros: la otra medida se calcula con la superficie (1 mm sobre 1 m² = 1 litro).',
     campos: [
-      { nombre: 'siembraId', etiqueta: 'Siembra', tipo: 'select', requerido: true, vacio: 'Elegí…', opciones: opcionesSiembras(h, r ? r.siembraId : siembraId) },
+      { nombre: 'alcance', etiqueta: 'Se regó', tipo: 'select', requerido: true,
+        opciones: [{ valor: 'siembra', texto: 'Una siembra (un lomo)' }, { valor: 'parcela', texto: 'Toda la parcela (se reparte entre sus siembras)' }] },
+      { nombre: 'destinoId', etiqueta: 'Siembra o parcela', tipo: 'select', requerido: true, vacio: 'Elegí…', recalcularCon: ['alcance'],
+        opciones: function (v) {
+          if (v.alcance === 'parcela') {
+            return parcelasConSiembras.map(function (p) {
+              return { valor: p.id, texto: p.nombre + ' · ' + repartoParcela(h, p.id).length + ' siembras activas' };
+            });
+          }
+          return opcionesSiembras(h, r ? r.siembraId : siembraId);
+        } },
       { nombre: 'fecha', etiqueta: 'Fecha', tipo: 'fecha', requerido: true, medio: true },
       { nombre: 'metodo', etiqueta: 'Método', tipo: 'select', opciones: HUERTA.metodosRiego, requerido: true, medio: true },
-      { nombre: 'cantidad', etiqueta: 'Cantidad', tipo: 'numero', requerido: true, minimo: 0, medio: true },
+      { nombre: 'cantidad', etiqueta: 'Cantidad (total)', tipo: 'numero', requerido: true, minimo: 0, medio: true },
       { nombre: 'unidadCarga', etiqueta: 'Unidad', tipo: 'select', opciones: [{ valor: 'litros', texto: 'Litros' }, { valor: 'mm', texto: 'Milímetros (mm)' }], requerido: true, medio: true },
       { nombre: 'notas', etiqueta: 'Notas', tipo: 'area' }
     ],
-    preguntaEliminar: '¿Eliminar este riego?',
-    antesDeGuardar: function (datos) {
-      const s = h.siembrasPorId[datos.siembraId];
-      const superficie = s ? superficieSiembraM2(h, s) : 0;
-      const cantidad = Number(datos.cantidad) || 0;
-      // 1 mm de agua sobre 1 m² = 1 litro
-      if (datos.unidadCarga === 'mm') {
-        datos.laminaMm = String(cantidad);
-        datos.litros = superficie ? String(Math.round(cantidad * superficie * 100) / 100) : '';
-      } else {
-        datos.litros = String(cantidad);
-        datos.laminaMm = superficie ? String(Math.round(cantidad / superficie * 100) / 100) : '';
+    preguntaEliminar: esGrupo ? '¿Eliminar este riego de toda la parcela? Se borra la parte de cada siembra.' : '¿Eliminar este riego?',
+    validar: function (d) {
+      if (d.alcance === 'parcela' && !repartoParcela(h, d.destinoId).length) return 'Esa parcela no tiene siembras activas para repartir el riego.';
+      if (d.alcance === 'siembra' && !h.siembrasPorId[d.destinoId]) return 'Elegí la siembra.';
+      return null;
+    },
+    guardar: async function (d, anterior) {
+      const cantidad = Number(d.cantidad) || 0;
+      const comun = { fecha: d.fecha, metodo: d.metodo, unidadCarga: d.unidadCarga, notas: d.notas };
+      const delGrupoAnterior = anterior && anterior.grupoId
+        ? h.riegos.filter(function (x) { return x.grupoId === anterior.grupoId; }) : [];
+
+      if (d.alcance === 'siembra') {
+        const s = h.siembrasPorId[d.destinoId];
+        const registro = Object.assign({}, comun, convertirRiego(cantidad, d.unidadCarga, superficieSiembraM2(h, s)),
+          { siembraId: s.id, grupoId: '', parcelaGrupoId: '', totalGrupo: '' });
+        // Si antes era un riego de toda la parcela, se borran las otras partes
+        for (const x of delGrupoAnterior) if (x.id !== anterior.id) await Datos.eliminar('Riegos', x.id);
+        if (anterior) registro.id = anterior.id;
+        return Datos.guardar('Riegos', registro);
       }
-      delete datos.cantidad;
+
+      // Toda la parcela: una parte para cada siembra activa, proporcional a su superficie
+      const grupoId = (anterior && anterior.grupoId) || idAlAzar();
+      const reparto = repartoParcela(h, d.destinoId);
+      const existentesPorSiembra = {};
+      delGrupoAnterior.forEach(function (x) { existentesPorSiembra[x.siembraId] = x; });
+      let primero = null;
+      for (const parte of reparto) {
+        const cantidadParte = d.unidadCarga === 'mm' ? cantidad : cantidad * parte.parte;
+        const registro = Object.assign({}, comun, convertirRiego(cantidadParte, d.unidadCarga, parte.superficie), {
+          siembraId: parte.siembra.id, grupoId: grupoId, parcelaGrupoId: d.destinoId, totalGrupo: String(cantidad)
+        });
+        const previo = existentesPorSiembra[parte.siembra.id] || (anterior && !anterior.grupoId && anterior.siembraId === parte.siembra.id ? anterior : null);
+        if (previo) { registro.id = previo.id; delete existentesPorSiembra[parte.siembra.id]; }
+        const guardado = await Datos.guardar('Riegos', registro);
+        if (!primero) primero = guardado;
+      }
+      // Partes que ya no corresponden (siembras que dejaron de estar activas) o el riego individual anterior
+      for (const sobra of Object.values(existentesPorSiembra)) await Datos.eliminar('Riegos', sobra.id);
+      if (anterior && !anterior.grupoId && !reparto.some(function (p) { return p.siembra.id === anterior.siembraId; })) {
+        await Datos.eliminar('Riegos', anterior.id);
+      }
+      return primero;
+    },
+    eliminar: async function (riego) {
+      const aBorrar = riego.grupoId ? h.riegos.filter(function (x) { return x.grupoId === riego.grupoId; }) : [riego];
+      for (const x of aBorrar) await Datos.eliminar('Riegos', x.id);
     }
   });
 }
