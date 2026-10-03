@@ -208,3 +208,21 @@ function proyeccionStock(f) {
     return { especieId: especieId, nombre: nombreEspecie(f, especieId), stockKg: stock[especieId], consumoKgDia: c, dias: c > 0 ? stock[especieId] / c : null };
   }).sort(function (a, b) { return (a.dias === null ? Infinity : a.dias) - (b.dias === null ? Infinity : b.dias); });
 }
+
+/**
+ * Curva de materia verde: una serie por lote/cuadro con muestreos (como "Curva de materia verde" de Forrajes).
+ * Devuelve { fechas: ['AAAA-MM-DD'...], series: [{ nombre, valores: [kg | null por fecha] }] }
+ */
+function seriesMateriaVerde(f, muestreos) {
+  const fechas = Object.keys(muestreos.reduce(function (m, x) { m[x.fecha] = 1; return m; }, {})).sort();
+  const porLugar = {};
+  muestreos.forEach(function (m) {
+    const clave = lugarTexto(f, m.loteId, m.cuadroId);
+    porLugar[clave] = porLugar[clave] || {};
+    porLugar[clave][m.fecha] = (porLugar[clave][m.fecha] || 0) + (Number(m.materiaVerdeTotalKg) || 0);
+  });
+  const series = Object.keys(porLugar).sort(function (a, b) { return a.localeCompare(b, 'es', { numeric: true }); }).map(function (lugar) {
+    return { nombre: lugar, valores: fechas.map(function (fecha) { return porLugar[lugar][fecha] === undefined ? null : porLugar[lugar][fecha]; }) };
+  });
+  return { fechas: fechas, series: series };
+}

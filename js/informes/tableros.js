@@ -137,6 +137,39 @@ function tabColumnas(etiquetas, series, op) {
   return svg;
 }
 
+/** Líneas con puntos y valor (curva de materia verde). series: [{ nombre, valores (null = sin dato), color }] */
+function tabLineas(etiquetas, series, op) {
+  op = op || {};
+  const ancho = 640, alto = 170, izq = 50, der = 34, arriba = 18, abajo = 24;
+  const todos = series.reduce(function (t, s) { return t.concat(s.valores.filter(function (v) { return v !== null; })); }, []);
+  const maximo = escalaRedonda(Math.max(1, ...todos));
+  const inicio = izq + 24; // margen para que el primer punto no tape el eje
+  const x = function (i) { return inicio + (etiquetas.length <= 1 ? (ancho - inicio - der) / 2 : i * (ancho - inicio - der) / (etiquetas.length - 1)); };
+  const y = function (v) { return arriba + (1 - v / maximo) * (alto - arriba - abajo); };
+  const div = divisionesEje(maximo);
+  let svg = '<svg class="tab-svg" viewBox="0 0 ' + ancho + ' ' + alto + '">';
+  for (let i = 0; i <= div; i++) {
+    const v = maximo * i / div;
+    svg += '<line x1="' + izq + '" x2="' + (ancho - der) + '" y1="' + y(v) + '" y2="' + y(v) + '" class="tab-guia"/>' +
+      '<text x="' + (izq - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" class="tab-eje">' + esc(formatoCorto(v)) + '</text>';
+  }
+  series.forEach(function (s) {
+    const puntos = s.valores.map(function (v, i) { return v === null ? null : x(i) + ',' + y(v); }).filter(Boolean);
+    if (puntos.length > 1) svg += '<polyline points="' + puntos.join(' ') + '" fill="none" stroke="' + s.color + '" stroke-width="2.5"/>';
+    s.valores.forEach(function (v, i) {
+      if (v === null) return;
+      svg += '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="4" fill="' + s.color + '"/>' +
+        '<text x="' + x(i) + '" y="' + (y(v) - 8) + '" text-anchor="middle" class="tab-valor chico">' + esc(numero(Math.round(v))) + '</text>';
+    });
+  });
+  etiquetas.forEach(function (et, i) {
+    if (etiquetas.length <= 8 || i % Math.ceil(etiquetas.length / 8) === 0) {
+      svg += '<text x="' + x(i) + '" y="' + (alto - 6) + '" text-anchor="middle" class="tab-eje">' + esc(et) + '</text>';
+    }
+  });
+  return svg + '<line x1="' + izq + '" x2="' + (ancho - der) + '" y1="' + y(0) + '" y2="' + y(0) + '" class="tab-base"/></svg>';
+}
+
 function tabTablaDatos(filas) {
   return '<table class="tab-tabla">' + filas.map(function (f) {
     return '<tr><td>' + esc(f[0]) + '</td><td class="der">' + esc(f[1]) + '</td></tr>';
@@ -407,6 +440,15 @@ async function htmlTableroForrajes() {
       tabBarras(ordenadas.map(function (s) {
         return { titulo: nombreCortoMezcla(f, s.id), sub: lugarCorto(f, s), valor: lluvia(s), texto: numero(Math.round(lluvia(s))) + ' mm', color: colorUso[s.usoPrevisto] || PALETA_TABLERO.gris };
       })) +
+      (function () {
+        const curva = seriesMateriaVerde(f, f.muestreosCrecimiento);
+        if (!curva.series.length) return '';
+        const colores = [PALETA_TABLERO.verde, PALETA_TABLERO.marron, PALETA_TABLERO.verdeClaro, PALETA_TABLERO.gris, '#c9a227', '#4f7ca8'];
+        const series = curva.series.map(function (s, i) { return { nombre: s.nombre, valores: s.valores, color: colores[i % colores.length] }; });
+        return tabTitulo('Curva de materia verde', 'Kg de materia verde total en cada muestreo.') +
+          tabLeyenda(series.map(function (s) { return { texto: s.nombre, color: s.color }; })) +
+          tabLineas(curva.fechas.map(diaMes), series);
+      })() +
     '</section><section class="tab-der">' +
       tabTitulo('Semilla sembrada por lote') +
       tabBarras(ordenadas.filter(function (s) { return semilla(s); }).map(function (s) {

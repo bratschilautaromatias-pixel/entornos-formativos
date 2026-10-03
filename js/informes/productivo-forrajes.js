@@ -103,7 +103,6 @@ function indicadoresForrajes(d) {
 function htmlGraficosForrajes(d) {
   const etiquetas = d.meses.map(function (m) { return etiquetaMes(m, d.meses.length > 12); });
   const loteCurva = filtroInformeForrajes.lote;
-  const muestreosCurva = loteCurva ? d.muestreos : [];
   return '<div class="grilla-graficos">' +
     graficoBarras(etiquetas, [{ nombre: 'Lluvia', valores: d.meses.map(function (m) { return d.lluviaMes[m] || 0; }), color: '#1565c0' }],
       { titulo: 'Lluvia por mes (mm)' }) +
@@ -113,13 +112,15 @@ function htmlGraficosForrajes(d) {
     graficoRanking(d.proyeccion.map(function (p) {
       return { etiqueta: p.nombre, valor: p.stockKg, texto: numero(p.stockKg) + ' kg' + (p.dias !== null ? ' · ' + Math.floor(p.dias) + ' días' : '') };
     }), { titulo: 'Stock de reservas (y días que alcanza)', color: '#8d6e63' }) +
-    (loteCurva
-      ? (muestreosCurva.length
-          ? graficoLinea(muestreosCurva.map(function (m) { return diaMes(m.fecha); }),
-              [{ nombre: 'Materia verde', valores: muestreosCurva.map(function (m) { return Number(m.materiaVerdeTotalKg) || 0; }), color: '#2e7d32' }],
-              { titulo: 'Curva de materia verde · ' + nombreLote(d.f, loteCurva) + ' (kg)' })
-          : envolverGrafico('<p class="ayuda">Todavía no hay muestreos para este lote.</p>', [], { titulo: 'Curva de materia verde' }))
-      : envolverGrafico('<p class="ayuda">Elegí un lote arriba para ver su curva de materia verde.</p>', [], { titulo: 'Curva de materia verde' })) +
+    (function () {
+      // Una línea por lote/cuadro (o solo el lote elegido arriba)
+      const curva = seriesMateriaVerde(d.f, d.muestreos.filter(function (m) { return enPeriodo(m.fecha, d.periodo); }));
+      if (!curva.series.length) return envolverGrafico('<p class="ayuda vacio-grafico">Todavía no hay muestreos de crecimiento en este período.</p>', [], { titulo: 'Curva de materia verde (kg)' });
+      return graficoLinea(curva.fechas.map(diaMes), curva.series.map(function (s, i) {
+        return { nombre: s.nombre, valores: s.valores, color: COLORES_GRAFICO[i % COLORES_GRAFICO.length] };
+      }), { titulo: 'Curva de materia verde (kg)' + (loteCurva ? ' · ' + nombreLote(d.f, loteCurva) : ''),
+        nota: 'Materia verde total del lote o cuadro en cada muestreo (Crecimiento).' });
+    })() +
   '</div>';
 }
 
