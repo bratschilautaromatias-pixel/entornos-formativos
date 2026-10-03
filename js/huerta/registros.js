@@ -50,6 +50,10 @@ function pantallaRiego() {
       const visibles = calculo.filas.filter(function (f) { return f.fecha >= sumarDias(hoyTexto(), -10); });
       html += (clima.sinConexion ? '<div class="aviso">Sin conexión: se muestra el último clima guardado (' + formatearFecha(clima.actualizado) + ').</div>' : '') +
         recomendacion +
+        (calculo.cubierta.cubierta
+          ? '<p class="ayuda">🏠 <b>Parcela bajo cubierta:</b> no se cuenta la lluvia y el consumo es el ' +
+            Math.round(calculo.cubierta.factor * 100) + '% del de afuera. Todo el agua es la que regás.</p>'
+          : '') +
         (hoy
           ? '<div class="resumen">' +
               '<div class="' + (hoy.regar ? 'mal' : 'ok') + '"><b>' + hoy.porcentajeAgua + '%</b><span>Agua en el suelo</span></div>' +
@@ -66,7 +70,7 @@ function pantallaRiego() {
           visibles.map(function (d) {
             return '<tr class="' + (d.pronostico ? 'pronostico' : '') + (d.fecha === hoyTexto() ? ' hoy' : '') + '">' +
               '<td>' + diaMes(d.fecha) + (d.pronostico ? ' *' : '') + '</td><td>' + d.et0.toFixed(1) + '</td><td>' + d.kc.toFixed(2) + '</td>' +
-              '<td>' + d.etc.toFixed(1) + '</td><td>' + d.lluviaEfectiva.toFixed(1) + '</td><td>' + (d.aplicado ? d.aplicado.toFixed(1) : '—') + '</td>' +
+              '<td>' + d.etc.toFixed(1) + '</td><td>' + (calculo.cubierta.cubierta ? '—' : d.lluviaEfectiva.toFixed(1)) + '</td><td>' + (d.aplicado ? d.aplicado.toFixed(1) : '—') + '</td>' +
               '<td class="' + (d.regar ? 'texto-rojo' : '') + '">' + d.porcentajeAgua + '%</td>' +
               '<td>' + d.faltante.toFixed(1) + '</td><td>' + (d.litros === null ? '—' : numero(Math.round(d.litros))) + '</td></tr>';
           }).join('') +

@@ -13,7 +13,7 @@ function pantallaParcelas() {
         const activas = h.siembras.filter(function (s) { return s.parcelaId === p.id && HUERTA.activas.indexOf(s.estado) !== -1; });
         return '<div class="fila-usuario' + (p.activa === 'false' ? ' inactiva' : '') + '">' +
           '<div class="datos-usuario"><strong>' + esc(p.nombre) + (p.activa === 'false' ? ' (inactiva)' : '') + '</strong>' +
-            '<span class="ayuda">' + [p.superficieM2 ? numero(p.superficieM2) + ' m²' : 'Sin superficie', p.tipoSuelo, lomos.length + ' lomos',
+            '<span class="ayuda">' + [p.bajoCubierta === 'true' ? '🏠 Bajo cubierta' : '', p.superficieM2 ? numero(p.superficieM2) + ' m²' : 'Sin superficie', p.tipoSuelo, lomos.length + ' lomos',
               activas.length + ' siembras activas'].filter(Boolean).map(esc).join(' · ') + '</span>' +
             (lomos.length ? '<div class="chips">' + lomos.map(function (l) {
               const ocupado = h.siembras.find(function (s) { return s.lomoId === l.id && HUERTA.activas.indexOf(s.estado) !== -1; });
@@ -46,6 +46,9 @@ async function formularioParcela(id) {
       { nombre: 'cantidadLomos', etiqueta: 'Cantidad de lomos', tipo: 'entero', minimo: 0, medio: true, ayuda: 'Se crean solos: Lomo 1, 2, 3…' },
       { nombre: 'superficiePorLomoM2', etiqueta: 'Superficie de cada lomo (m²)', tipo: 'numero', minimo: 0, medio: true },
       { nombre: 'tipoSuelo', etiqueta: 'Tipo de suelo', tipo: 'select', opciones: HUERTA.tiposSuelo, medio: true },
+      { nombre: 'bajoCubierta', etiqueta: 'Bajo cubierta (macrotúnel / invernadero): no entra la lluvia', tipo: 'sino', seccion: 'Cubierta' },
+      { nombre: 'factorCubierta', etiqueta: 'Factor de consumo bajo cubierta', tipo: 'numero', minimo: 0.3,
+        ayuda: 'Parte del consumo de afuera. FAO sugiere 0,6 a 0,8. Si lo dejás vacío se usa 0,7' },
       { nombre: 'latitud', etiqueta: 'Latitud', tipo: 'numero', medio: true, seccion: 'Ubicación (opcional, para el clima)', ayuda: 'Si la dejás vacía se usa la de la escuela' },
       { nombre: 'longitud', etiqueta: 'Longitud', tipo: 'numero', medio: true },
       { nombre: 'capacidadCampoMm', etiqueta: 'Capacidad de campo (mm)', tipo: 'numero', minimo: 0, medio: true, seccion: 'Datos de suelo (opcional)',

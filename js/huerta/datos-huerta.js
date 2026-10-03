@@ -200,10 +200,22 @@ function capacidadAguaSuelo(h, s, dias) {
  * El agua que sobra queda guardada en el suelo (hasta que se llena) y se va gastando los días siguientes.
  * Se supone el suelo lleno el día de la siembra (o el primer día con datos de clima, si la siembra es más vieja).
  */
+/**
+ * Si la parcela está bajo cubierta (macrotúnel, invernadero): la lluvia no llega al suelo y
+ * el consumo es menor que afuera (menos sol y viento). FAO sugiere 0,6 a 0,8 de la ET0 exterior; por defecto 0,7.
+ */
+function condicionesCubierta(h, s) {
+  const p = h.parcelasPorId[s.parcelaId] || {};
+  if (p.bajoCubierta !== 'true') return { cubierta: false, factor: 1 };
+  const factor = Number(p.factorCubierta);
+  return { cubierta: true, factor: factor > 0 && factor <= 1.2 ? factor : 0.7 };
+}
+
 function calcularRiegoSiembra(h, s, diasClima) {
   const cultivo = h.cultivosPorId[s.cultivoId];
   const superficie = superficieSiembraM2(h, s);
   const hoy = hoyTexto();
+  const cubierta = condicionesCubierta(h, s);
   const aplicadoPorFecha = {};
   h.riegos.filter(function (r) { return r.siembraId === s.id; }).forEach(function (r) {
     aplicadoPorFecha[r.fecha] = (aplicadoPorFecha[r.fecha] || 0) + (Number(r.laminaMm) || 0);
@@ -216,12 +228,13 @@ function calcularRiegoSiembra(h, s, diasClima) {
       const dias = diasEntre(s.fechaSiembra, d.fecha);
       const ek = etapaYKc(cultivo, dias);
       const capacidad = capacidadAguaSuelo(h, s, dias);
-      const etc = d.et0 * ek.kc;
-      const lluviaEfectiva = d.lluvia * 0.8;
+      const et0 = d.et0 * cubierta.factor;
+      const etc = et0 * ek.kc;
+      const lluviaEfectiva = cubierta.cubierta ? 0 : d.lluvia * 0.8;
       const aplicado = aplicadoPorFecha[d.fecha] || 0;
       faltante = Math.min(capacidad.total, Math.max(0, faltante + etc - lluviaEfectiva - aplicado));
       return {
-        fecha: d.fecha, dias: dias, etapa: ek.etapa, kc: ek.kc, et0: d.et0, etc: etc,
+        fecha: d.fecha, dias: dias, etapa: ek.etapa, kc: ek.kc, et0: et0, etc: etc,
         lluviaEfectiva: lluviaEfectiva, aplicado: aplicado,
         faltante: faltante, capacidad: capacidad.total, facil: capacidad.facil, raiz: capacidad.raiz,
         porcentajeAgua: capacidad.total > 0 ? Math.round((1 - faltante / capacidad.total) * 100) : 100,
@@ -235,5 +248,5 @@ function calcularRiegoSiembra(h, s, diasClima) {
   const proximo = deHoy && !deHoy.regar
     ? filas.find(function (f) { return f.pronostico && f.regar; }) || null
     : null;
-  return { filas: filas, hoy: deHoy, proximoRiego: proximo, superficie: superficie };
+  return { filas: filas, hoy: deHoy, proximoRiego: proximo, superficie: superficie, cubierta: cubierta };
 }
