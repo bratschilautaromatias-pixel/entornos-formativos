@@ -54,12 +54,12 @@ async function abrirFormulario(op) {
   // Campos que dependen de otros (ej. lomos de la parcela elegida)
   campos.filter(function (c) { return c.recalcularCon; }).forEach(function (campo) {
     campo.recalcularCon.forEach(function (otro) {
-      const control = form.elements[otro];
+      const control = campoDelFormulario(form, otro);
       if (!control) return;
       control.addEventListener('change', async function () {
         const actuales = leerValoresFormulario(form, campos, true).datos;
         campo._opciones = await opcionesDeCampo(campo, actuales);
-        const select = form.elements[campo.nombre];
+        const select = campoDelFormulario(form, campo.nombre);
         select.innerHTML = htmlOpciones(campo, '');
       });
     });
@@ -167,7 +167,7 @@ function leerValoresFormulario(form, campos, sinValidar) {
       datos[campo.nombre] = valor;
       continue;
     }
-    const control = form.elements[campo.nombre];
+    const control = campoDelFormulario(form, campo.nombre);
     if (!control) continue;
     let valor;
     if (campo.tipo === 'sino') {
@@ -191,4 +191,9 @@ function leerValoresFormulario(form, campos, sinValidar) {
     datos[campo.nombre] = valor;
   }
   return { datos: datos };
+}
+
+/** Busca un campo por nombre (sin chocar con nombres reservados del navegador como "item" o "length"). */
+function campoDelFormulario(form, nombre) {
+  return form.querySelector('[name="' + nombre + '"]');
 }

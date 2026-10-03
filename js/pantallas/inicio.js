@@ -34,6 +34,11 @@ PANTALLAS.inicio = function () {
           '<span><span class="nombre">Tareas de la semana</span>' +
           '<span class="detalle">Lo que hay que hacer de lunes a viernes, por entorno y curso</span></span>' +
         '</button>' +
+        '<button class="cuadro ancho" onclick="ir(\'necesidades\')">' +
+          '<span class="icono">🛒</span>' +
+          '<span><span class="nombre">Necesidades de los entornos <span class="insignia" id="necesidades-pendientes" hidden></span></span>' +
+          '<span class="detalle">Insumos y herramientas que hay que comprar, por entorno</span></span>' +
+        '</button>' +
         (esDueno()
           ? '<button class="cuadro ancho" onclick="ir(\'usuarios\')">' +
               '<span class="icono">👥</span>' +
@@ -46,7 +51,18 @@ PANTALLAS.inicio = function () {
   );
 
   if (esDueno()) contarPendientes();
+  contarNecesidadesUrgentes();
 };
+
+/** Muestra en el cuadro Necesidades cuántas compras urgentes hay. */
+async function contarNecesidadesUrgentes() {
+  const urgentes = (await Datos.listar('Necesidades')).filter(function (n) { return n.estado !== 'Comprado' && n.prioridad === 'Urgente'; }).length;
+  const insignia = document.getElementById('necesidades-pendientes');
+  if (insignia && urgentes) {
+    insignia.textContent = urgentes === 1 ? '1 urgente' : urgentes + ' urgentes';
+    insignia.hidden = false;
+  }
+}
 
 /** Muestra en el cuadro Usuarios cuántas cuentas esperan aprobación. */
 async function contarPendientes() {

@@ -4,7 +4,7 @@
  * IMPORTANTE: cada vez que se cambia cualquier archivo de la app hay que subir el número de VERSION;
  * así los equipos se enteran de que hay una versión nueva y muestran el aviso "Actualizar".
  */
-const VERSION = 'v16';
+const VERSION = 'v17';
 const CACHE = 'entornos-formativos-' + VERSION;
 
 const ARCHIVOS = [
@@ -19,6 +19,7 @@ const ARCHIVOS = [
   'js/pantallas/inicio.js',
   'js/pantallas/usuarios.js',
   'js/pantallas/tareas.js',
+  'js/pantallas/necesidades.js',
   'js/pantallas/entorno.js',
   'js/pantallas/economia.js',
   'js/formularios.js',

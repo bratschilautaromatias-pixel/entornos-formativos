@@ -815,3 +815,25 @@ fieldset.casillas .boton { margin-bottom: 8px; }
   #zona-impresion .tablero-impreso .tab-kpis { grid-template-columns: repeat(4, 1fr); }
   #zona-impresion .tablero-impreso .tab-cuerpo { grid-template-columns: 1.45fr 1fr; }
 }
+
+/* ===== Necesidades de los entornos ===== */
+.lista-necesidades { margin-top: 10px; }
+.lista-necesidades-cabecera { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.necesidad {
+  background: var(--tarjeta);
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  border-left: 5px solid var(--ambar);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.necesidad.urgente { border-left-color: var(--rojo); }
+.necesidad.comprada { border-left-color: var(--verde); opacity: 0.7; }
+.necesidad.comprada .necesidad-texto strong { text-decoration: line-through; }
+.necesidad-texto { flex: 1 1 220px; min-width: 0; }
+.necesidad-texto strong, .necesidad-texto .ayuda { display: block; }
+.necesidad-cantidad { font-weight: 400; color: var(--texto-suave); }
