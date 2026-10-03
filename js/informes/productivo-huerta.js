@@ -70,7 +70,8 @@ async function datosProductivosHuerta(periodo, conClima) {
     const rs = h.riegos.filter(function (r) { return r.siembraId === s.id; });
     const ts = h.tratamientos.filter(function (t) { return t.siembraId === s.id; }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
     const ultimaCosecha = cs.length ? cs.map(function (c) { return c.fecha; }).sort().pop() : '';
-    const hasta = ultimaCosecha || hoyTexto();
+    // El ciclo dura hasta hoy mientras la siembra siga activa; si terminó, hasta su última cosecha
+    const hasta = HUERTA.activas.indexOf(s.estado) !== -1 || !ultimaCosecha ? hoyTexto() : ultimaCosecha;
     const suelo = h.analisisSuelo.filter(function (a) {
       return a.parcelaId === s.parcelaId && (!a.lomoId || a.lomoId === s.lomoId) && a.fecha >= s.fechaSiembra && a.fecha <= hasta;
     }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
@@ -135,9 +136,9 @@ function indicadoresHuerta(d) {
   return htmlIndicadores([
     { titulo: 'Siembras activas', valor: String(d.activas), detalle: 'hoy' },
     { titulo: 'Cosechado', valor: numero(d.totalKg) + ' kg', detalle: d.cosechas.length + ' cosechas', tono: 'ok' },
-    { titulo: '🏠 Riego bajo cubierta', valor: numero(Math.round(d.litrosCubierta)) + ' L', detalle: d.riegosCubierta.length + ' riegos (goteo)' },
+    { titulo: '🏠 Riego bajo cubierta', valor: numero(Math.round(d.litrosCubierta)) + ' L', detalle: contarRiegos(d.riegosCubierta) + ' riegos (goteo)' },
     { titulo: '☀ Lluvia a cielo abierto', valor: numero(d.totalLluvia) + ' mm', detalle: d.diasConLluvia + ' días (pluviómetro)' },
-    { titulo: '☀ Riego a cielo abierto', valor: numero(Math.round(d.litrosAireLibre)) + ' L', detalle: d.riegosAireLibre.length + ' riegos' },
+    { titulo: '☀ Riego a cielo abierto', valor: numero(Math.round(d.litrosAireLibre)) + ' L', detalle: contarRiegos(d.riegosAireLibre) + ' riegos' },
     { titulo: 'Tratamientos', valor: String(d.tratamientos.length), detalle: 'aplicaciones' },
     { titulo: 'Ocupación de lomos', valor: d.ocupacionPct === null ? '—' : d.ocupacionPct + '%', detalle: d.lomosOcupados + ' de ' + d.totalLomos + ' lomos' },
     { titulo: 'Germinación', valor: d.germinacionPromedio === null ? '—' : numero(d.germinacionPromedio) + '%', detalle: 'promedio de ' + d.almacigos.length + ' almácigos' }
@@ -166,7 +167,7 @@ function htmlGraficosHuerta(d) {
 
 function tablaSiembrasHuerta(d, paraPdf) {
   return htmlTablaInforme('Informe completo por siembra (' + d.filas.length + ')',
-    ['Origen', 'Tipo', 'Cultivo', 'Siembra', 'Cosecha', 'Días', 'Plantas', 'Kg', 'Kg/planta', 'Lluvia mm', 'Riego L', 'Riego mm', 'Agua total mm', 'pH ini/fin', 'Tratamientos'],
+    ['Origen', 'Tipo', 'Cultivo', 'Siembra', 'Cosecha', 'Días', 'Plantas', 'Kg', 'Kg/planta', 'Lluvia del ciclo mm', 'Riego L', 'Riego mm', 'Agua total mm', 'pH ini/fin', 'Tratamientos'],
     d.filas.map(function (f) {
       return [f.origen, f.tipo === 'Bajo cubierta' ? '🏠 Cubierta' : '☀ Aire libre', f.cultivo, formatearFecha(f.fechaSiembra), f.ultimaCosecha ? formatearFecha(f.ultimaCosecha) + (f.terminada ? ' ✓' : '') : '—',
         f.diasCiclo === null ? '' : f.diasCiclo, f.plantas || '', numero(f.kg), f.kgPlanta === null ? '' : numero(f.kgPlanta),
@@ -188,7 +189,7 @@ async function dibujarDashboardHuerta() {
       d.h.parcelas.map(function (p) { return '<option value="' + esc(p.id) + '"' + (filtroInformeHuerta.parcela === p.id ? ' selected' : '') + '>' + esc(p.nombre) + '</option>'; }).join('') +
     '</select></label>' +
     '<p class="ayuda centrado">' + esc(d.periodo.titulo) + '</p>' +
-    htmlBotonesExportar('exportarHuertaExcel', 'exportarHuertaPdf', 'informe de producción') +
+    htmlBotonesExportar('exportarHuertaExcel', 'exportarHuertaPdf', 'informe de producción', 'tablero/productivo/huerta', 'Tablero productivo') +
     indicadoresHuerta(d) + htmlGraficosHuerta(d) +
     tablaSiembrasHuerta(d, false) +
     '<p class="ayuda">La lluvia de cada siembra se calcula al exportar el informe (necesita internet la primera vez).</p>';
@@ -205,15 +206,15 @@ function exportarHuertaExcel(boton) {
         ['Informe de producción · Huerta' + parcela], ['Período: ' + d.periodo.titulo + ' · Generado el ' + formatearFecha(hoyTexto())], [],
         ['Indicador', 'Valor'],
         ['Siembras activas (hoy)', d.activas], ['Kg cosechados', celdaNumero(d.totalKg)], ['Cantidad de cosechas', d.cosechas.length],
-        ['Riego bajo cubierta (L)', celdaNumero(d.litrosCubierta, 0)], ['Riegos bajo cubierta', d.riegosCubierta.length],
-        ['Riego a cielo abierto (L)', celdaNumero(d.litrosAireLibre, 0)], ['Riegos a cielo abierto', d.riegosAireLibre.length],
+        ['Riego bajo cubierta (L)', celdaNumero(d.litrosCubierta, 0)], ['Riegos bajo cubierta', contarRiegos(d.riegosCubierta)],
+        ['Riego a cielo abierto (L)', celdaNumero(d.litrosAireLibre, 0)], ['Riegos a cielo abierto', contarRiegos(d.riegosAireLibre)],
         ['Lluvia a cielo abierto (mm, pluviómetro)', celdaNumero(d.totalLluvia, 1)], ['Días con lluvia', d.diasConLluvia],
         ['Tratamientos aplicados', d.tratamientos.length],
         ['Lomos ocupados (hoy)', d.lomosOcupados + ' de ' + d.totalLomos], ['Germinación promedio (%)', celdaNumero(d.germinacionPromedio, 1)]
       ] },
       { nombre: 'Por siembra', encabezado: 1, filas: [['Informe completo por siembra'],
         ['Origen', 'Tipo', 'Cultivo', 'Almácigo de origen', 'Siembra', 'Última cosecha', 'Días ciclo', 'Estado', 'Plantas', 'Kg', 'Kg/planta', 'Kg/m²', 'Terminada',
-          'Lluvia (mm)', 'Origen lluvia', 'Riego (L)', 'Riego (mm)', 'Agua total (mm)', 'pH inicial', 'pH final', 'CE inicial', 'CE final', 'Tratamientos']].concat(
+          'Lluvia del ciclo (mm)', 'Origen lluvia', 'Riego (L)', 'Riego (mm)', 'Agua total (mm)', 'pH inicial', 'pH final', 'CE inicial', 'CE final', 'Tratamientos']].concat(
         d.filas.map(function (f) {
           return [f.origen, f.tipo, f.cultivo, f.almacigo, formatearFecha(f.fechaSiembra), f.ultimaCosecha ? formatearFecha(f.ultimaCosecha) : '', f.diasCiclo === null ? '' : f.diasCiclo,
             f.estado, f.plantas || '', celdaNumero(f.kg), celdaNumero(f.kgPlanta, 3), celdaNumero(f.kgM2, 2), f.terminada ? 'Sí' : 'No',

@@ -6,6 +6,7 @@ const SECCIONES_FORRAJES = [
   { clave: 'siembras', nombre: 'Siembras', icono: '🌾', detalle: 'Qué hay sembrado en cada lote y cuadro (mezclas de especies)' },
   { clave: 'lluvias', nombre: 'Lluvias', icono: '🌧', detalle: 'Pluviómetro: una lectura para varios lotes a la vez' },
   { clave: 'crecimiento', nombre: 'Crecimiento', icono: '📏', detalle: 'Muestreos de materia verde' },
+  { clave: 'henificacion', nombre: 'Henificación', icono: '🌀', detalle: 'Corte, volteos y enrollado' },
   { clave: 'cosechas', nombre: 'Cosechas', icono: '🚜', detalle: 'Rollos, fardos, silo y su ingreso al stock' },
   { clave: 'inventario', nombre: 'Reservas (stock)', icono: '🏚', detalle: 'Ubicaciones, stock, movimientos y análisis' },
   { clave: 'raciones', nombre: 'Raciones', icono: '🐄', detalle: 'Dieta por categoría animal y consumo' },
@@ -18,7 +19,7 @@ PANTALLAS.forrajes = function (parametro) {
   const partes = String(parametro || '').split('/');
   const pantallas = {
     siembras: pantallaSiembrasForraje, siembra: pantallaFichaSiembraForraje, lluvias: pantallaLluvias,
-    crecimiento: pantallaCrecimiento, cosechas: pantallaCosechasForraje, inventario: pantallaInventario,
+    crecimiento: pantallaCrecimiento, cosechas: pantallaCosechasForraje, henificacion: pantallaHenificacion, inventario: pantallaInventario,
     raciones: pantallaRaciones, racion: pantallaFichaRacion, lotes: pantallaLotes, especies: pantallaEspecies,
     categorias: pantallaCategorias
   };
@@ -153,6 +154,7 @@ function pantallaFichaSiembraForraje(id) {
         '<div><b>' + muestreos.length + '</b><span>Muestreos</span></div>' +
       '</div>' +
       (puedeEditar() ? '<div class="botones-alta">' +
+        '<button class="boton chico" onclick="formularioCorte(null, \'' + esc(id) + '\')">✂ Corte</button>' +
         '<button class="boton chico" onclick="formularioCosechaForraje(null, \'' + esc(id) + '\')">🚜 Cosecha</button>' +
         '<button class="boton chico" onclick="formularioMuestreo(null, \'' + esc(s.loteId) + '\', \'' + esc(s.cuadroId) + '\')">📏 Muestreo</button>' +
         '<button class="boton chico secundario" onclick="formularioSiembraForraje(\'' + esc(id) + '\')">✎ Editar</button></div>' : '') +

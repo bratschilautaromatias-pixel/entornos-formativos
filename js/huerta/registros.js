@@ -90,14 +90,44 @@ function pantallaRiego() {
   });
 }
 
-/** Siembras activas de una parcela, con la parte de la superficie que le toca a cada una. */
-function repartoParcela(h, parcelaId) {
-  const siembras = h.siembras.filter(function (s) { return s.parcelaId === parcelaId && HUERTA.activas.indexOf(s.estado) !== -1; });
-  const superficies = siembras.map(function (s) { return superficieSiembraM2(h, s); });
-  const total = superficies.reduce(function (t, x) { return t + x; }, 0);
-  return siembras.map(function (s, i) {
-    return { siembra: s, superficie: superficies[i], parte: total > 0 ? superficies[i] / total : 1 / siembras.length };
+/** ¿La siembra estaba plantada (y todavía no terminada) en esa fecha? */
+function siembraPresenteEn(h, s, fecha) {
+  if (!s.fechaSiembra || s.fechaSiembra > fecha) return false;
+  if (HUERTA.activas.indexOf(s.estado) !== -1) return true;
+  // Ya terminada: cuenta si su última cosecha fue ese día o después
+  const ultima = h.cosechas.filter(function (c) { return c.siembraId === s.id; }).map(function (c) { return c.fecha; }).sort().pop();
+  return !!ultima && ultima >= fecha;
+}
+
+/**
+ * Cómo se reparte un riego de toda la parcela en una fecha:
+ * - solo cuentan las siembras que ya estaban plantadas ese día;
+ * - el agua se reparte por LOMO, según su superficie (un lomo sin siembras no recibe);
+ * - si en un lomo hay dos cultivos, comparten el agua de ese lomo (la lámina en mm es la del lomo).
+ * Devuelve [{ siembra, superficieUnidad, parteUnidad, compartenUnidad }]
+ */
+function repartoParcela(h, parcelaId, fecha) {
+  fecha = fecha || hoyTexto();
+  const siembras = h.siembras.filter(function (s) { return s.parcelaId === parcelaId && siembraPresenteEn(h, s, fecha); });
+  const unidades = {};
+  siembras.forEach(function (s) {
+    const clave = s.lomoId ? 'lomo:' + s.lomoId : 'siembra:' + s.id;
+    (unidades[clave] = unidades[clave] || []).push(s);
   });
+  const claves = Object.keys(unidades);
+  const superficie = {};
+  claves.forEach(function (k) { superficie[k] = superficieSiembraM2(h, unidades[k][0]); });
+  const total = claves.reduce(function (t, k) { return t + superficie[k]; }, 0);
+  const partes = [];
+  claves.forEach(function (k) {
+    unidades[k].forEach(function (s) {
+      partes.push({
+        siembra: s, superficieUnidad: superficie[k], compartenUnidad: unidades[k].length,
+        parteUnidad: total > 0 ? superficie[k] / total : 1 / claves.length
+      });
+    });
+  });
+  return partes;
 }
 
 /** Litros y mm a partir de lo cargado (1 mm sobre 1 m² = 1 litro). */
@@ -111,7 +141,7 @@ async function formularioRiego(id, siembraId) {
   const h = await cargarHuerta();
   const r = id ? h.riegosPorId[id] : null;
   const esGrupo = !!(r && r.grupoId);
-  const parcelasConSiembras = h.parcelas.filter(function (p) { return repartoParcela(h, p.id).length; });
+  const parcelasConSiembras = h.parcelas.filter(function (p) { return repartoParcela(h, p.id, r ? r.fecha : hoyTexto()).length; });
   const valores = r
     ? Object.assign({}, r, {
         alcance: esGrupo ? 'parcela' : 'siembra',
@@ -129,11 +159,11 @@ async function formularioRiego(id, siembraId) {
     campos: [
       { nombre: 'alcance', etiqueta: 'Se regó', tipo: 'select', requerido: true,
         opciones: [{ valor: 'siembra', texto: 'Una siembra (un lomo)' }, { valor: 'parcela', texto: 'Toda la parcela (se reparte entre sus siembras)' }] },
-      { nombre: 'destinoId', etiqueta: 'Siembra o parcela', tipo: 'select', requerido: true, vacio: 'Elegí…', recalcularCon: ['alcance'],
+      { nombre: 'destinoId', etiqueta: 'Siembra o parcela', tipo: 'select', requerido: true, vacio: 'Elegí…', recalcularCon: ['alcance', 'fecha'],
         opciones: function (v) {
           if (v.alcance === 'parcela') {
             return parcelasConSiembras.map(function (p) {
-              return { valor: p.id, texto: p.nombre + ' · ' + repartoParcela(h, p.id).length + ' siembras activas' };
+              return { valor: p.id, texto: p.nombre + ' · ' + repartoParcela(h, p.id, v.fecha || hoyTexto()).length + ' siembras' };
             });
           }
           return opcionesSiembras(h, r ? r.siembraId : siembraId);
@@ -146,7 +176,7 @@ async function formularioRiego(id, siembraId) {
     ],
     preguntaEliminar: esGrupo ? '¿Eliminar este riego de toda la parcela? Se borra la parte de cada siembra.' : '¿Eliminar este riego?',
     validar: function (d) {
-      if (d.alcance === 'parcela' && !repartoParcela(h, d.destinoId).length) return 'Esa parcela no tiene siembras activas para repartir el riego.';
+      if (d.alcance === 'parcela' && !repartoParcela(h, d.destinoId, d.fecha).length) return 'Esa parcela no tenía siembras plantadas el ' + formatearFecha(d.fecha) + ' para repartir el riego.';
       if (d.alcance === 'siembra' && !h.siembrasPorId[d.destinoId]) return 'Elegí la siembra.';
       return null;
     },
@@ -166,15 +196,20 @@ async function formularioRiego(id, siembraId) {
         return Datos.guardar('Riegos', registro);
       }
 
-      // Toda la parcela: una parte para cada siembra activa, proporcional a su superficie
+      // Toda la parcela: una parte para cada lomo con siembras ese día, proporcional a su superficie
       const grupoId = (anterior && anterior.grupoId) || idAlAzar();
-      const reparto = repartoParcela(h, d.destinoId);
+      const reparto = repartoParcela(h, d.destinoId, d.fecha);
+      const redondear = function (x) { return Math.round(x * 100) / 100; };
       const existentesPorSiembra = {};
       delGrupoAnterior.forEach(function (x) { existentesPorSiembra[x.siembraId] = x; });
       let primero = null;
       for (const parte of reparto) {
-        const cantidadParte = d.unidadCarga === 'mm' ? cantidad : cantidad * parte.parte;
-        const registro = Object.assign({}, comun, convertirRiego(cantidadParte, d.unidadCarga, parte.superficie), {
+        // Agua del lomo: en mm es la misma lámina para todo el lomo; en litros, la parte del total que le toca
+        const litrosLomo = d.unidadCarga === 'mm' ? cantidad * parte.superficieUnidad : cantidad * parte.parteUnidad;
+        const laminaLomo = d.unidadCarga === 'mm' ? cantidad : (parte.superficieUnidad ? litrosLomo / parte.superficieUnidad : 0);
+        const registro = Object.assign({}, comun, {
+          litros: parte.superficieUnidad || d.unidadCarga !== 'mm' ? String(redondear(litrosLomo / parte.compartenUnidad)) : '',
+          laminaMm: laminaLomo ? String(redondear(laminaLomo)) : '',
           siembraId: parte.siembra.id, grupoId: grupoId, parcelaGrupoId: d.destinoId, totalGrupo: String(cantidad)
         });
         const previo = existentesPorSiembra[parte.siembra.id] || (anterior && !anterior.grupoId && anterior.siembraId === parte.siembra.id ? anterior : null);

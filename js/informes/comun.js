@@ -33,8 +33,9 @@ function enPeriodo(fecha, periodo) {
 }
 
 /** Botones de exportación que aparecen arriba de cada dashboard. */
-function htmlBotonesExportar(funcionExcel, funcionPdf, nombreInforme) {
-  return '<div class="botones-exportar">' +
+function htmlBotonesExportar(funcionExcel, funcionPdf, nombreInforme, rutaTablero, textoTablero) {
+  return (rutaTablero ? '<button class="boton boton-tablero" onclick="ir(\'' + rutaTablero + '\')">🖼 ' + esc(textoTablero) + '</button>' : '') +
+    '<div class="botones-exportar">' +
     '<span>Exportar ' + esc(nombreInforme) + ':</span>' +
     '<button class="boton chico" onclick="' + funcionExcel + '(this)">⬇ Excel</button>' +
     '<button class="boton chico" onclick="' + funcionPdf + '(this)">⬇ PDF</button>' +

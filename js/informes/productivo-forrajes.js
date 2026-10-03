@@ -42,7 +42,8 @@ async function datosProductivosForrajes(periodo, conClima) {
   const filas = siembras.map(function (s) {
     const cs = f.cosechasForraje.filter(function (c) { return c.siembraId === s.id; });
     const ultima = cs.length ? cs.map(function (c) { return c.fecha; }).sort().pop() : '';
-    const hasta = ultima || hoyTexto();
+    // Mientras la siembra siga en crecimiento (ej. avena sin cortar) la lluvia se cuenta hasta hoy
+    const hasta = s.estado === 'En crecimiento' || !ultima ? hoyTexto() : ultima;
     const manual = f.lluviasManuales.filter(function (r) {
       return r.loteId === s.loteId && (!s.cuadroId || !r.cuadroId || r.cuadroId === s.cuadroId) && r.fecha >= s.fechaSiembra && r.fecha <= hasta;
     });
@@ -119,7 +120,7 @@ function htmlGraficosForrajes(d) {
 
 function tablaSiembrasForrajes(d) {
   return htmlTablaInforme('Informe por siembra (' + d.filas.length + ')',
-    ['Lote', 'Cuadro', 'Especies', 'Uso', 'Siembra', 'Cosecha', 'Días', 'Kg', 'Rollos', 'Kg semilla', 'Lluvia mm', 'T. máx', 'T. mín'],
+    ['Lote', 'Cuadro', 'Especies', 'Uso', 'Siembra', 'Cosecha', 'Días', 'Kg', 'Rollos', 'Kg semilla', 'Lluvia del ciclo mm', 'T. máx', 'T. mín'],
     d.filas.map(function (x) {
       return [x.lote, x.cuadro, x.especies, x.uso, formatearFecha(x.siembra), x.cosecha ? formatearFecha(x.cosecha) : '—', x.diasCiclo === null ? '' : x.diasCiclo,
         numero(x.kg), x.rollos || '', x.semilla ? numero(x.semilla) : '',
@@ -151,7 +152,7 @@ async function dibujarDashboardForrajes() {
       '</select></label>' +
     '</div>' +
     '<p class="ayuda centrado">' + esc(d.periodo.titulo) + '</p>' +
-    htmlBotonesExportar('exportarForrajesExcel', 'exportarForrajesPdf', 'informe de producción') +
+    htmlBotonesExportar('exportarForrajesExcel', 'exportarForrajesPdf', 'informe de producción', 'tablero/productivo/forrajes', 'Tablero productivo') +
     indicadoresForrajes(d) + htmlGraficosForrajes(d) + tablaSiembrasForrajes(d) + tablaRaciones(d);
 }
 
@@ -170,7 +171,7 @@ function exportarForrajesExcel(boton) {
       ] },
       { nombre: 'Por siembra', encabezado: 1, filas: [['Informe por siembra'],
         ['Lote', 'Cuadro', 'Especies', 'Uso previsto', 'Estado', 'Siembra', 'Última cosecha', 'Días ciclo', 'Kg', 'Rollos', 'Kg semilla',
-          'Lluvia (mm)', 'Origen lluvia', 'Temp. máx. prom. (°C)', 'Temp. mín. prom. (°C)']].concat(
+          'Lluvia del ciclo (mm)', 'Origen lluvia', 'Temp. máx. prom. (°C)', 'Temp. mín. prom. (°C)']].concat(
         d.filas.map(function (x) {
           return [x.lote, x.cuadro, x.especies, x.uso, x.estado, formatearFecha(x.siembra), x.cosecha ? formatearFecha(x.cosecha) : '', x.diasCiclo === null ? '' : x.diasCiclo,
             celdaNumero(x.kg), x.rollos || '', celdaNumero(x.semilla), celdaNumero(x.lluvia, 1), x.lluvia === null ? '' : (x.lluviaManual ? 'Pluviómetro' : 'Servicio de clima'),

@@ -92,7 +92,7 @@ async function dibujarDashboardEconomico() {
   lugar.innerHTML = '<h1>💹 ' + esc(entornoInformeEconomico.nombre.toUpperCase()) + ' · ECONOMÍA</h1>' +
     htmlSelectorPeriodoInforme() +
     '<p class="ayuda centrado">' + esc(d.periodo.titulo) + '</p>' +
-    htmlBotonesExportar('exportarEconomicoExcel', 'exportarEconomicoPdf', 'informe económico') +
+    htmlBotonesExportar('exportarEconomicoExcel', 'exportarEconomicoPdf', 'informe económico', 'tablero/economico/' + entornoInformeEconomico.clave, 'Tablero económico') +
     indicadoresEconomicos(d) +
     htmlGraficosEconomicos(d) +
     htmlTablaInforme('Resumen por mes', ['Mes', 'Ingresos', 'Egresos', 'Balance', 'Acumulado', 'Remitos'],

@@ -288,3 +288,10 @@ function calcularRiegoSiembra(h, s, diasClima) {
     : null;
   return { filas: filas, hoy: deHoy, proximoRiego: proximo, superficie: superficie, cubierta: cubierta, usaPluviometro: usaPluviometro };
 }
+
+/** Cantidad de riegos reales: un riego de toda la parcela cuenta una sola vez (no una por lomo). */
+function contarRiegos(lista) {
+  const vistos = {};
+  lista.forEach(function (r) { vistos[r.grupoId || r.id] = true; });
+  return Object.keys(vistos).length;
+}
