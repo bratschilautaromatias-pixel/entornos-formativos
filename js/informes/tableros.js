@@ -346,7 +346,7 @@ async function htmlTableroForrajes() {
   const partesFrase = siembrasCosechadas.map(function (s) {
     return 'El corte de ' + nombreCortoMezcla(f, s.id).toLowerCase() + ' del ' + nombreLote(f, s.loteId) + ' se hizo a los ' + diasEntre(s.fechaSiembra, ultimaCosecha(s)) + ' días';
   });
-  const largas = siembras.filter(function (s) { return diasCiclo(s) > 120 && !f.cosechasForraje.some(function (c) { return c.siembraId === s.id; }); })
+  const largas = siembras.filter(function (s) { return diasCiclo(s) > 120 && !f.cosechasForraje.some(function (c) { return c.siembraId === s.id; }) && !pastoreosDeSiembra(f, s.id).length; })
     .map(function (s) { return nombreCortoMezcla(f, s.id).toLowerCase(); });
   const frase = [partesFrase.join('. '), largas.length ? mayuscula(listaNatural(Object.keys(largas.reduce(function (m, x) { m[x] = 1; return m; }, {})))) + ' superan los 120 días sin cortes ni pastoreos cargados' : '']
     .filter(Boolean).join('. ') + (partesFrase.length || largas.length ? '.' : '');
@@ -369,7 +369,8 @@ async function htmlTableroForrajes() {
   // Para mejorar el registro
   const avisos = [];
   const sinPastoreo = siembras.filter(function (s) {
-    return s.usoPrevisto !== 'Heno' && diasCiclo(s) > 90 && !f.cosechasForraje.some(function (c) { return c.siembraId === s.id && c.tipoAprovechamiento === 'Pastoreo directo'; });
+    return s.usoPrevisto !== 'Heno' && diasCiclo(s) > 90 && !pastoreosDeSiembra(f, s.id).length &&
+      !f.cosechasForraje.some(function (c) { return c.siembraId === s.id && c.tipoAprovechamiento === 'Pastoreo directo'; });
   }).map(function (s) { return nombreLote(f, s.loteId); });
   if (sinPastoreo.length) avisos.push('Cargar los pastoreos de ' + listaNatural(Object.keys(sinPastoreo.reduce(function (m, x) { m[x] = 1; return m; }, {}))) + '.');
   const sinSuperficie = f.lotes.filter(function (l) { return l.activo !== 'false' && !Number(l.superficieHa); }).map(function (l) { return l.nombre; });
@@ -398,7 +399,9 @@ async function htmlTableroForrajes() {
       tabBarras(ordenadas.map(function (s) {
         const u = ultimaCosecha(s);
         return { titulo: nombreCortoMezcla(f, s.id), sub: lugarCorto(f, s), valor: diasCiclo(s),
-          texto: diasCiclo(s) + ' d' + (u ? ' · ' + (s.estado === 'En crecimiento' ? 'con corte' : 'cosechada') : ''), color: colorUso[s.usoPrevisto] || PALETA_TABLERO.gris };
+          texto: diasCiclo(s) + ' d' + (u ? ' · ' + (s.estado === 'En crecimiento' ? 'con corte' : 'cosechada') : '') +
+            (pastoreosDeSiembra(f, s.id).length ? ' · ' + pastoreosDeSiembra(f, s.id).length + ' pastoreo' + (pastoreosDeSiembra(f, s.id).length === 1 ? '' : 's') : ''),
+          color: colorUso[s.usoPrevisto] || PALETA_TABLERO.gris };
       }), { eje: pasos, unidad: 'días' }) +
       tabTitulo('Lluvia acumulada desde la siembra') +
       tabBarras(ordenadas.map(function (s) {

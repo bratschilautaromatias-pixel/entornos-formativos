@@ -17,7 +17,7 @@ async function cargarForrajes() {
   const nombres = ['Lotes', 'Cuadros', 'EspeciesForraje', 'SiembrasForraje', 'SiembraEspecies', 'CosechasForraje',
     'MuestreosCrecimiento', 'LluviasManuales', 'CategoriasAnimales', 'LotesConsumo', 'Raciones', 'RacionIngredientes',
     'AsignacionesRacion', 'UbicacionesAlmacenamiento', 'LotesInventario', 'MovimientosInventario', 'AnalisisNutricionales',
-    'CortesForraje', 'VolteosForraje'];
+    'CortesForraje', 'VolteosForraje', 'PastoreosForraje'];
   const listas = await Promise.all(nombres.map(function (t) { return Datos.listar(t); }));
   const f = {};
   nombres.forEach(function (t, i) {

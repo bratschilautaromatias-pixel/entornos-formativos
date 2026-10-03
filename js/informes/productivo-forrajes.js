@@ -70,9 +70,14 @@ async function datosProductivosForrajes(periodo, conClima) {
     return { racion: r.nombre, categoria: cat.nombre, c: c };
   }).filter(Boolean);
   const lotesActivos = f.lotes.filter(function (l) { return l.activo !== 'false' && deLote(l.id); });
+  const pastoreos = f.pastoreosForraje.filter(function (p) {
+    const s = f.siembrasForrajePorId[p.siembraId];
+    return s && deLote(s.loteId) && p.fechaEntrada <= periodo.hasta && (!p.fechaSalida || p.fechaSalida >= periodo.desde);
+  }).sort(function (a, b) { return a.fechaEntrada.localeCompare(b.fechaEntrada); });
 
   return {
-    f: f, periodo: periodo, siembras: siembras, cosechas: cosechas, lluvias: lluvias, muestreos: muestreos, filas: filas,
+    f: f, periodo: periodo, siembras: siembras, cosechas: cosechas, lluvias: lluvias, muestreos: muestreos, filas: filas, pastoreos: pastoreos,
+    diasAnimal: pastoreos.reduce(function (t, p) { return t + infoPastoreo(f, p).diasAnimal; }, 0),
     meses: meses, kgMes: kgMes, lluviaMes: lluviaMes, proyeccion: proyeccion, raciones: raciones,
     totalKg: cosechas.reduce(function (t, c) { return t + kg(c); }, 0),
     totalRollos: cosechas.reduce(function (t, c) { return t + (Number(c.cantidadRollos) || 0); }, 0),
@@ -91,7 +96,7 @@ function indicadoresForrajes(d) {
     { titulo: 'Cosechado', valor: numero(d.totalKg) + ' kg', detalle: d.totalRollos ? d.totalRollos + ' rollos/fardos' : d.cosechas.length + ' cosechas', tono: 'ok' },
     { titulo: 'Lluvia', valor: numero(d.totalLluvia) + ' mm', detalle: 'pluviómetro' },
     { titulo: 'Stock de reservas', valor: numero(d.stockTotal) + ' kg', detalle: d.proyeccion.length + ' especies' },
-    { titulo: 'Raciones activas', valor: String(d.raciones.length), detalle: 'en uso' }
+    { titulo: 'Pastoreos', valor: String(d.pastoreos.length), detalle: numero(d.diasAnimal) + ' días-animal' }
   ]);
 }
 
@@ -129,7 +134,17 @@ function tablaSiembrasForrajes(d) {
     }), 'Lluvia del pluviómetro; con * = estimada por el servicio de clima (no había lecturas). Temperaturas promedio del ciclo (se calculan al exportar).');
 }
 
+function tablaPastoreos(d) {
+  return htmlTablaInforme('Pastoreos (' + d.pastoreos.length + ')', ['Lote / cuadro', 'Animales', 'Cabezas', 'Entrada', 'Salida', 'Días', 'Días-animal', 'Cab/ha'],
+    d.pastoreos.map(function (p) {
+      const i = infoPastoreo(d.f, p);
+      return [i.lugar, i.animales, i.cabezas, formatearFecha(p.fechaEntrada), p.fechaSalida ? formatearFecha(p.fechaSalida) : 'adentro', i.dias, numero(i.diasAnimal),
+        i.carga === null ? '' : numero(Math.round(i.carga * 10) / 10)];
+    }));
+}
+
 function tablaRaciones(d) {
+  if (!d.raciones.length) return '';
   return htmlTablaInforme('Cumplimiento de raciones (1 animal de referencia)', ['Ración', 'Categoría', 'MS kg', 'Estado MS', 'PB %', 'Estado PB', 'EM', 'Estado EM'],
     d.raciones.map(function (r) {
       return [r.racion, r.categoria, numero(r.c.ms), r.c.estadoMs, numero(r.c.pb), r.c.estadoPb, numero(r.c.em), r.c.estadoEm];
@@ -153,7 +168,7 @@ async function dibujarDashboardForrajes() {
     '</div>' +
     '<p class="ayuda centrado">' + esc(d.periodo.titulo) + '</p>' +
     htmlBotonesExportar('exportarForrajesExcel', 'exportarForrajesPdf', 'informe de producción', 'tablero/productivo/forrajes', 'Tablero productivo') +
-    indicadoresForrajes(d) + htmlGraficosForrajes(d) + tablaSiembrasForrajes(d) + tablaRaciones(d);
+    indicadoresForrajes(d) + htmlGraficosForrajes(d) + tablaSiembrasForrajes(d) + tablaPastoreos(d) + tablaRaciones(d);
 }
 
 function exportarForrajesExcel(boton) {
@@ -167,7 +182,7 @@ function exportarForrajesExcel(boton) {
         ['Indicador', 'Valor'],
         ['Lotes activos', d.lotesActivos], ['Hectáreas', celdaNumero(d.hectareas)], ['Siembras en crecimiento (hoy)', d.enCrecimiento],
         ['Kg cosechados', celdaNumero(d.totalKg)], ['Rollos / fardos', d.totalRollos], ['Lluvia (mm)', celdaNumero(d.totalLluvia, 1)],
-        ['Stock de reservas (kg)', celdaNumero(d.stockTotal)], ['Raciones activas', d.raciones.length]
+        ['Stock de reservas (kg)', celdaNumero(d.stockTotal)], ['Pastoreos', d.pastoreos.length], ['Días-animal', celdaNumero(d.diasAnimal, 0)]
       ] },
       { nombre: 'Por siembra', encabezado: 1, filas: [['Informe por siembra'],
         ['Lote', 'Cuadro', 'Especies', 'Uso previsto', 'Estado', 'Siembra', 'Última cosecha', 'Días ciclo', 'Kg', 'Rollos', 'Kg semilla',
@@ -186,6 +201,13 @@ function exportarForrajesExcel(boton) {
         d.raciones.map(function (r) {
           return [r.racion, r.categoria, celdaNumero(r.c.ms), r.c.estadoMs, celdaNumero(r.c.pb), r.c.estadoPb, celdaNumero(r.c.em), r.c.estadoEm,
             celdaNumero(r.c.ca), r.c.estadoCa, celdaNumero(r.c.p), r.c.estadoP];
+        })) },
+      { nombre: 'Pastoreos', encabezado: 1, filas: [['Pastoreos'], ['Lote / cuadro', 'Siembra', 'Animales', 'Cabezas', 'Entrada', 'Salida', 'Días', 'Días-animal',
+        'Cabezas/ha', 'Altura entrada (cm)', 'Altura salida (cm)', 'Kg estimados', 'Notas']].concat(
+        d.pastoreos.map(function (p) {
+          const i = infoPastoreo(f, p);
+          return [i.lugar, i.siembra ? resumenEspecies(f, i.siembra.id) : '', i.animales, i.cabezas, formatearFecha(p.fechaEntrada), p.fechaSalida ? formatearFecha(p.fechaSalida) : 'adentro',
+            i.dias, i.diasAnimal, celdaNumero(i.carga, 1), celdaNumero(p.alturaEntradaCm), celdaNumero(p.alturaSalidaCm), celdaNumero(p.kgEstimados), p.notas];
         })) },
       { nombre: 'Lluvias', encabezado: 1, filas: [['Lluvias (pluviómetro)'], ['Fecha', 'Lote', 'Cuadro', 'mm', 'Notas']].concat(
         d.lluvias.slice().sort(function (a, b) { return a.fecha.localeCompare(b.fecha); }).map(function (r) {
@@ -211,7 +233,7 @@ function exportarForrajesPdf(boton) {
   conBotonOcupado(boton, async function () {
     const d = await datosProductivosForrajes(periodoInforme(), true);
     imprimirInforme('Informe de producción · Forrajes' + (filtroInformeForrajes.lote ? ' · ' + nombreLote(d.f, filtroInformeForrajes.lote) : ''), d.periodo.titulo,
-      indicadoresForrajes(d) + htmlGraficosForrajes(d) + tablaSiembrasForrajes(d) + tablaRaciones(d) +
+      indicadoresForrajes(d) + htmlGraficosForrajes(d) + tablaSiembrasForrajes(d) + tablaPastoreos(d) + tablaRaciones(d) +
       htmlTablaInforme('Stock de reservas', ['Especie', 'Stock (kg)', 'Consumo (kg/día)', 'Días restantes'],
         d.proyeccion.map(function (p) { return [p.nombre, numero(p.stockKg), p.consumoKgDia ? numero(p.consumoKgDia) : '—', p.dias === null ? 'Sin consumo' : Math.floor(p.dias)]; })));
   });

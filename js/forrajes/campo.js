@@ -6,13 +6,12 @@ const SECCIONES_FORRAJES = [
   { clave: 'siembras', nombre: 'Siembras', icono: '🌾', detalle: 'Qué hay sembrado en cada lote y cuadro (mezclas de especies)' },
   { clave: 'lluvias', nombre: 'Lluvias', icono: '🌧', detalle: 'Pluviómetro: una lectura para varios lotes a la vez' },
   { clave: 'crecimiento', nombre: 'Crecimiento', icono: '📏', detalle: 'Muestreos de materia verde' },
+  { clave: 'pastoreos', nombre: 'Pastoreos', icono: '🐑', detalle: 'Entrada y salida de animales por lote' },
   { clave: 'henificacion', nombre: 'Henificación', icono: '🌀', detalle: 'Corte, volteos y enrollado' },
   { clave: 'cosechas', nombre: 'Cosechas', icono: '🚜', detalle: 'Rollos, fardos, silo y su ingreso al stock' },
   { clave: 'inventario', nombre: 'Reservas (stock)', icono: '🏚', detalle: 'Ubicaciones, stock, movimientos y análisis' },
-  { clave: 'raciones', nombre: 'Raciones', icono: '🐄', detalle: 'Dieta por categoría animal y consumo' },
   { clave: 'lotes', nombre: 'Lotes y cuadros', icono: '🗺', detalle: 'Superficies y ubicación' },
-  { clave: 'especies', nombre: 'Especies', icono: '📖', detalle: 'Catálogo con valor nutritivo' },
-  { clave: 'categorias', nombre: 'Categorías animales', icono: '🐑', detalle: 'Requerimientos nutricionales' }
+  { clave: 'especies', nombre: 'Especies', icono: '📖', detalle: 'Catálogo con valor nutritivo' }
 ];
 
 PANTALLAS.forrajes = function (parametro) {
@@ -21,7 +20,7 @@ PANTALLAS.forrajes = function (parametro) {
     siembras: pantallaSiembrasForraje, siembra: pantallaFichaSiembraForraje, lluvias: pantallaLluvias,
     crecimiento: pantallaCrecimiento, cosechas: pantallaCosechasForraje, henificacion: pantallaHenificacion, inventario: pantallaInventario,
     raciones: pantallaRaciones, racion: pantallaFichaRacion, lotes: pantallaLotes, especies: pantallaEspecies,
-    categorias: pantallaCategorias
+    categorias: pantallaCategorias, pastoreos: pantallaPastoreos
   };
   if (pantallas[partes[0]]) return pantallas[partes[0]](partes[1]);
   pantallaMenuForrajes();
@@ -66,7 +65,7 @@ function pantallaMenuForrajes() {
   marcoForrajes('Producción · Forrajes', 'entorno/forrajes', function (f) {
     const enCrecimiento = f.siembrasForraje.filter(function (s) { return s.estado === 'En crecimiento'; }).length;
     const lotesActivos = f.lotes.filter(function (l) { return l.activo !== 'false'; }).length;
-    const racionesActivas = f.raciones.filter(function (r) { return r.activa !== 'false'; }).length;
+    const conAnimales = f.pastoreosForraje.filter(function (p) { return !p.fechaSalida; }).length;
     const alertas = proyeccionStock(f).filter(function (p) { return p.dias !== null && p.dias <= FORRAJES.diasAlertaStock; });
     const anio = String(new Date().getFullYear());
     const lluviaAnio = (function () {
@@ -82,7 +81,7 @@ function pantallaMenuForrajes() {
       '<div class="resumen">' +
         '<div><b>' + lotesActivos + '</b><span>Lotes activos</span></div>' +
         '<div class="ok"><b>' + enCrecimiento + '</b><span>Siembras en crecimiento</span></div>' +
-        '<div><b>' + racionesActivas + '</b><span>Raciones activas</span></div>' +
+        '<div><b>' + conAnimales + '</b><span>Lotes con animales</span></div>' +
         '<div><b>' + numero(lluviaAnio) + '</b><span>mm de lluvia ' + anio + '</span></div>' +
       '</div>' +
       (alertas.length
@@ -154,6 +153,7 @@ function pantallaFichaSiembraForraje(id) {
         '<div><b>' + muestreos.length + '</b><span>Muestreos</span></div>' +
       '</div>' +
       (puedeEditar() ? '<div class="botones-alta">' +
+        '<button class="boton chico" onclick="formularioPastoreo(null, \'' + esc(id) + '\')">🐑 Pastoreo</button>' +
         '<button class="boton chico" onclick="formularioCorte(null, \'' + esc(id) + '\')">✂ Corte</button>' +
         '<button class="boton chico" onclick="formularioCosechaForraje(null, \'' + esc(id) + '\')">🚜 Cosecha</button>' +
         '<button class="boton chico" onclick="formularioMuestreo(null, \'' + esc(s.loteId) + '\', \'' + esc(s.cuadroId) + '\')">📏 Muestreo</button>' +
@@ -171,6 +171,12 @@ function pantallaFichaSiembraForraje(id) {
         return '<strong>' + numero(c.cantidadTotalKg) + ' kg</strong> · ' + esc(c.tipoAprovechamiento) + ' · ' + formatearFecha(c.fecha) +
           (c.cantidadRollos ? ' · ' + numero(c.cantidadRollos) + ' rollos' : '') + (c.ingresadaAInventario === 'true' ? ' · en stock' : '');
       }, 'formularioCosechaForraje') +
+      htmlHistorial('🐑 Pastoreos', pastoreosDeSiembra(f, id).sort(function (a, b) { return b.fechaEntrada.localeCompare(a.fechaEntrada); }), function (p) {
+        const i = infoPastoreo(f, p);
+        return '<strong>' + numero(i.cabezas) + ' cabezas · ' + esc(i.animales) + '</strong> · ' + diaMes(p.fechaEntrada) +
+          (i.enCurso ? ' · adentro hace ' + i.dias + ' días' : ' → ' + diaMes(p.fechaSalida) + ' · ' + i.dias + ' días') +
+          '<br><span class="ayuda">' + numero(i.diasAnimal) + ' días-animal' + (i.carga !== null ? ' · ' + numero(Math.round(i.carga * 10) / 10) + ' cab/ha' : '') + '</span>';
+      }, 'formularioPastoreo') +
       htmlHistorial('📏 Muestreos de crecimiento', muestreos, function (m) {
         return '<strong>' + numero(m.materiaVerdeTotalKg) + ' kg de materia verde</strong> · ' + formatearFecha(m.fecha) +
           (m.notas ? '<br><span class="ayuda">' + esc(m.notas) + '</span>' : '');
