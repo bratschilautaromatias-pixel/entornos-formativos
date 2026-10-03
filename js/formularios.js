@@ -101,8 +101,14 @@ async function abrirFormulario(op) {
   });
 }
 
+function marcarTodasCasillas(boton) {
+  const casillas = boton.closest('fieldset').querySelectorAll('input[type=checkbox]');
+  const marcar = Array.prototype.some.call(casillas, function (c) { return !c.checked; });
+  casillas.forEach(function (c) { c.checked = marcar; });
+}
+
 async function opcionesDeCampo(campo, valores) {
-  if (campo.tipo !== 'select') return [];
+  if (campo.tipo !== 'select' && campo.tipo !== 'casillas') return [];
   const lista = typeof campo.opciones === 'function' ? await campo.opciones(valores) : (campo.opciones || []);
   return lista.map(function (o) { return typeof o === 'object' ? o : { valor: o, texto: o }; });
 }
@@ -134,6 +140,16 @@ function htmlCampo(campo, valores) {
     case 'sino':
       return '<label class="casilla"><input ' + nombre + ' type="checkbox"' + (valor === 'true' ? ' checked' : '') + '> ' +
         esc(campo.etiqueta) + '</label>' + (ayuda ? '<p>' + ayuda + '</p>' : '');
+    case 'casillas': {
+      // Varias opciones a la vez. El valor se guarda como lista separada por comas.
+      const elegidos = String(valor).split(',').filter(Boolean);
+      return '<fieldset class="casillas" data-campo="' + esc(campo.nombre) + '"><legend>' + etiqueta + '</legend>' +
+        (campo.botonTodos ? '<button type="button" class="boton chico secundario" onclick="marcarTodasCasillas(this)">Marcar todos</button>' : '') +
+        campo._opciones.map(function (o) {
+          return '<label class="casilla' + (o.sangria ? ' sangria' : '') + '"><input type="checkbox" value="' + esc(o.valor) + '"' +
+            (elegidos.indexOf(String(o.valor)) !== -1 ? ' checked' : '') + '> ' + esc(o.texto) + '</label>';
+        }).join('') + ayuda + '</fieldset>';
+    }
     default:
       return '<label>' + etiqueta + '<input ' + nombre + ' maxlength="300" value="' + esc(valor) + '">' + ayuda + '</label>';
   }
@@ -143,6 +159,14 @@ function htmlCampo(campo, valores) {
 function leerValoresFormulario(form, campos, sinValidar) {
   const datos = {};
   for (const campo of campos) {
+    if (campo.tipo === 'casillas') {
+      const grupo = form.querySelector('fieldset[data-campo="' + campo.nombre + '"]');
+      const valor = grupo ? Array.prototype.filter.call(grupo.querySelectorAll('input:checked'), function () { return true; })
+        .map(function (c) { return c.value; }).join(',') : '';
+      if (!sinValidar && campo.requerido && !valor) return { error: 'Elegí al menos una opción en "' + campo.etiqueta + '".' };
+      datos[campo.nombre] = valor;
+      continue;
+    }
     const control = form.elements[campo.nombre];
     if (!control) continue;
     let valor;

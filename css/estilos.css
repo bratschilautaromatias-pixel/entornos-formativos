@@ -327,6 +327,8 @@ input:focus, select:focus, textarea:focus {
 .avance-barra { height: 100%; background: var(--verde); transition: width 0.3s; }
 .avance-barra.bajo { background: var(--rojo); }
 .texto-rojo { color: var(--rojo); font-weight: 700; }
+.texto-ambar { color: #b26a00; font-weight: 700; }
+.tabla td.ok { color: var(--verde); }
 
 .bloque-atrasadas {
   background: var(--rojo-claro);
@@ -494,6 +496,18 @@ body.con-modal { overflow: hidden; }
 }
 label.casilla { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 label.casilla input { width: auto; margin: 0; }
+fieldset.casillas {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 8px 12px 4px;
+  margin: 0 0 14px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+fieldset.casillas legend { font-weight: 600; font-size: 0.9rem; padding: 0 4px; }
+fieldset.casillas label.casilla { font-weight: 500; margin-bottom: 8px; }
+fieldset.casillas label.casilla.sangria { margin-left: 24px; }
+fieldset.casillas .boton { margin-bottom: 8px; }
 
 /* ===== Huerta ===== */
 .tarjeta-siembra {
