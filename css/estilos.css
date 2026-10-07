@@ -369,6 +369,16 @@ input:focus, select:focus, textarea:focus {
 .tarea-texto strong { display: block; overflow-wrap: anywhere; }
 .tarea-texto .notas { font-style: italic; }
 .tarea-acciones { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.grupo-entorno-tareas h3 {
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+  margin: 10px 0 6px;
+  font-weight: 600;
+}
+.grupo-entorno-tareas:first-of-type h3 { margin-top: 2px; }
+.tarea-orden { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+.tarea-orden .boton { padding: 2px 8px; min-height: 0; font-size: 0.7rem; line-height: 1.4; }
+.tarea-orden .boton:disabled { opacity: 0.3; }
 .estado-select { width: auto; margin-top: 0; padding: 6px 8px; font-size: 0.85rem; }
 .estado-chip {
   font-size: 0.8rem;
@@ -832,8 +842,7 @@ fieldset.casillas .boton { margin-bottom: 8px; }
   gap: 8px;
 }
 .necesidad.urgente { border-left-color: var(--rojo); }
-.necesidad.comprada { border-left-color: var(--verde); opacity: 0.7; }
-.necesidad.comprada .necesidad-texto strong { text-decoration: line-through; }
+.necesidad.comprada { border-left-color: var(--verde); }
 .necesidad-texto { flex: 1 1 220px; min-width: 0; }
 .necesidad-texto strong, .necesidad-texto .ayuda { display: block; }
 .necesidad-cantidad { font-weight: 400; color: var(--texto-suave); }

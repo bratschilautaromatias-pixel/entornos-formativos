@@ -91,31 +91,62 @@ async function dibujarTareas() {
 
   for (let i = 0; i < 5; i++) {
     const dia = sumarDias(lunes, i);
-    const delDia = deLaSemana
-      .filter(function (t) { return t.fecha === dia; })
-      .sort(function (a, b) { return (a.entorno + a.tarea).localeCompare(b.entorno + b.tarea); });
+    const delDia = deLaSemana.filter(function (t) { return t.fecha === dia; });
+    // Agrupadas por entorno (en el orden de la lista de entornos) y, dentro de cada entorno, en el orden elegido
+    const grupos = entornosDeTareas(delDia, entornos).map(function (entorno) {
+      const tareas = ordenarTareas(delDia.filter(function (t) { return t.entorno === entorno; }));
+      return '<div class="grupo-entorno-tareas">' +
+        '<h3>' + (ICONOS_ENTORNO[entorno] || '•') + ' ' + esc(entorno) + '</h3>' +
+        tareas.map(function (t, j) {
+          return htmlTarea(t, estados, editar, false, { primera: j === 0, ultima: j === tareas.length - 1 });
+        }).join('') +
+      '</div>';
+    }).join('');
     html += '<section class="dia' + (dia === hoyTexto() ? ' hoy' : '') + '">' +
       '<h2>' + NOMBRES_DIAS[i + 1] + ' ' + diaMes(dia) + (dia === hoyTexto() ? ' <span class="insignia">Hoy</span>' : '') + '</h2>' +
-      (delDia.length
-        ? delDia.map(function (t) { return htmlTarea(t, estados, editar, false); }).join('')
-        : '<p class="ayuda sin-tareas">Sin tareas</p>') +
+      (grupos || '<p class="ayuda sin-tareas">Sin tareas</p>') +
     '</section>';
   }
 
   contenedor.innerHTML = html;
 }
 
-function htmlTarea(t, estados, editar, esAtrasada) {
+/** Entornos que tienen tareas, en el orden de la lista de entornos (los que no estén en la lista, al final). */
+function entornosDeTareas(tareas, entornos) {
+  const presentes = tareas.map(function (t) { return t.entorno; })
+    .filter(function (e, i, a) { return a.indexOf(e) === i; });
+  return presentes.sort(function (a, b) {
+    const ia = entornos.indexOf(a), ib = entornos.indexOf(b);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib) || a.localeCompare(b);
+  });
+}
+
+/** Orden elegido con ↑ ↓; las que nunca se ordenaron van al final, por nombre. */
+function ordenarTareas(tareas) {
+  const posicion = function (t) { return t.orden !== '' && t.orden !== undefined && !isNaN(Number(t.orden)) ? Number(t.orden) : Infinity; };
+  return tareas.sort(function (a, b) {
+    return (posicion(a) === posicion(b) ? 0 : posicion(a) < posicion(b) ? -1 : 1) || String(a.tarea).localeCompare(String(b.tarea));
+  });
+}
+
+function htmlTarea(t, estados, editar, esAtrasada, lugar) {
   const id = esc(t.id);
   const estado = t.estado || 'Pendiente';
   const detalles = [
-    (ICONOS_ENTORNO[t.entorno] || '•') + ' ' + esc(t.entorno),
+    esAtrasada ? (ICONOS_ENTORNO[t.entorno] || '•') + ' ' + esc(t.entorno) : '',
     t.curso ? esc(t.curso) : '',
     esAtrasada ? 'era del ' + esc(NOMBRES_DIAS[textoAFecha(t.fecha).getDay()].toLowerCase()) + ' ' + diaMes(t.fecha) : '',
     t.fechaOriginal ? '↪ movida (antes ' + diaMes(t.fechaOriginal) + ')' : ''
   ].filter(Boolean).join(' · ');
 
+  const ordenable = editar && lugar && !(lugar.primera && lugar.ultima);
   return '<div class="tarea estado-' + esc(estado.toLowerCase()) + '">' +
+    (ordenable
+      ? '<div class="tarea-orden">' +
+          '<button class="boton chico secundario" onclick="subirBajarTarea(\'' + id + '\', -1)"' + (lugar.primera ? ' disabled' : '') + ' aria-label="Subir" title="Subir">▲</button>' +
+          '<button class="boton chico secundario" onclick="subirBajarTarea(\'' + id + '\', 1)"' + (lugar.ultima ? ' disabled' : '') + ' aria-label="Bajar" title="Bajar">▼</button>' +
+        '</div>'
+      : '') +
     '<div class="tarea-texto">' +
       '<strong>' + esc(t.tarea) + '</strong>' +
       '<span class="ayuda">' + detalles + '</span>' +
@@ -126,8 +157,9 @@ function htmlTarea(t, estados, editar, esAtrasada) {
         ? '<select class="estado-select" onchange="cambiarEstadoTarea(\'' + id + '\', this.value)" aria-label="Estado">' +
             opcionesSelect(estados, estado) + '</select>' +
           (esAtrasada
-            ? '<button class="boton chico secundario" onclick="moverTarea(\'' + id + '\', true)" title="Pasarla a la semana que estás viendo">→ A esta semana</button>'
-            : '<button class="boton chico secundario" onclick="moverTarea(\'' + id + '\', false)" title="Pasarla al mismo día de la semana siguiente">↪ +1 semana</button>') +
+            ? '<button class="boton chico secundario" onclick="moverTarea(\'' + id + '\', \'vista\')" title="Pasarla a la semana que estás viendo">→ A esta semana</button>'
+            : '<button class="boton chico secundario" onclick="moverTarea(\'' + id + '\', \'dia\')" title="Pasarla al día hábil siguiente">↪ +1 día</button>' +
+              '<button class="boton chico secundario" onclick="moverTarea(\'' + id + '\', \'semana\')" title="Pasarla al mismo día de la semana siguiente">↪ +1 semana</button>') +
           '<button class="boton chico secundario" onclick="formularioTarea(\'' + id + '\')" aria-label="Editar">✎</button>'
         : '<span class="estado-chip">' + esc(estado) + '</span>') +
     '</div>' +
@@ -138,19 +170,50 @@ async function cambiarEstadoTarea(id, estado) {
   await Datos.guardar('Tareas', { id: id, estado: estado });
 }
 
-/** Pasa la tarea una semana más adelante, o (si está atrasada) a la semana que se está viendo. */
-async function moverTarea(id, aLaSemanaVista) {
+/**
+ * Mueve la tarea: "dia" = al día hábil siguiente (el viernes pasa al lunes), "semana" = al mismo día
+ * de la semana siguiente, "vista" = (atrasadas) al mismo día de la semana que se está viendo.
+ * En el día nuevo queda al final de su entorno.
+ */
+async function moverTarea(id, modo) {
   const t = await Datos.obtener('Tareas', id);
   if (!t) return;
-  const diaSemana = (textoAFecha(t.fecha).getDay() + 6) % 7; // 0 = lunes
-  const nuevaFecha = aLaSemanaVista ? sumarDias(lunesTareas, diaSemana) : sumarDias(t.fecha, 7);
+  let nuevaFecha;
+  if (modo === 'dia') {
+    nuevaFecha = sumarDias(t.fecha, 1);
+    while (!esDiaHabil(nuevaFecha)) nuevaFecha = sumarDias(nuevaFecha, 1);
+  } else if (modo === 'vista') {
+    nuevaFecha = sumarDias(lunesTareas, (textoAFecha(t.fecha).getDay() + 6) % 7); // 0 = lunes
+  } else {
+    nuevaFecha = sumarDias(t.fecha, 7);
+  }
   await Datos.guardar('Tareas', {
     id: id,
     fecha: nuevaFecha,
     fechaOriginal: t.fechaOriginal || t.fecha,
     vecesMovida: String(Number(t.vecesMovida || 0) + 1),
-    estado: t.estado === 'Incompleta' ? 'Pendiente' : t.estado
+    estado: t.estado === 'Incompleta' ? 'Pendiente' : t.estado,
+    orden: ''
   });
+}
+
+/** Sube (-1) o baja (+1) la tarea dentro de su entorno, en el mismo día. */
+async function subirBajarTarea(id, paso) {
+  const todas = await Datos.listar('Tareas');
+  const t = todas.find(function (x) { return x.id === id; });
+  if (!t) return;
+  // Se numera todo el grupo (día + entorno) y se intercambia con la vecina que se ve en pantalla
+  const grupo = ordenarTareas(todas.filter(function (x) { return x.fecha === t.fecha && x.entorno === t.entorno; }));
+  const nuevoOrden = {};
+  grupo.forEach(function (x, i) { nuevoOrden[x.id] = String(i + 1); });
+  const visibles = grupo.filter(function (x) { return !filtrosTareas.curso || x.curso === filtrosTareas.curso; });
+  const vecina = visibles[visibles.indexOf(t) + paso];
+  if (!vecina) return;
+  nuevoOrden[t.id] = nuevoOrden[vecina.id];
+  nuevoOrden[vecina.id] = String(grupo.indexOf(t) + 1);
+  for (const x of grupo) {
+    if (String(x.orden || '') !== nuevoOrden[x.id]) await Datos.guardar('Tareas', { id: x.id, orden: nuevoOrden[x.id] });
+  }
 }
 
 async function formularioTarea(id) {
@@ -205,6 +268,8 @@ async function formularioTarea(id) {
       datos.id = t.id;
       // Si se cambió la fecha a mano, deja de figurar como "movida"
       if (datos.fecha !== t.fecha) { datos.fechaOriginal = ''; datos.vecesMovida = '0'; }
+      // En otro día o en otro entorno pasa al final de ese grupo
+      if (datos.fecha !== t.fecha || datos.entorno !== t.entorno) datos.orden = '';
     } else {
       datos.fechaOriginal = '';
       datos.vecesMovida = '0';

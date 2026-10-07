@@ -1,17 +1,21 @@
 /**
  * NECESIDADES DE LOS ENTORNOS: lista de compras (insumos y herramientas) por entorno.
  * Se marca "comprado" y, si se carga el costo, se puede registrar como egreso en Economía.
- * Dirección: #/necesidades
+ * Direcciones: #/necesidades (lo que falta comprar) y #/necesidades/compradas (lo que ya se compró)
  */
 const NECESIDADES = {
   tipos: ['Insumo', 'Herramienta', 'Repuesto', 'Otro'],
   prioridades: ['Urgente', 'Normal', 'Cuando se pueda'],
   iconoTipo: { 'Insumo': '🧴', 'Herramienta': '🛠', 'Repuesto': '⚙', 'Otro': '📦' }
 };
-const filtroNecesidades = { entorno: '', verComprados: false };
+const filtroNecesidades = { entorno: '' };
+let vistaNecesidades = 'pendientes'; // 'pendientes' o 'compradas'
 
-PANTALLAS.necesidades = function () {
-  render(htmlBarra('Necesidades de los entornos', 'inicio') + '<main class="contenido" id="contenido-necesidades"><p class="vacio">Cargando…</p></main>');
+PANTALLAS.necesidades = function (parametro) {
+  vistaNecesidades = parametro === 'compradas' ? 'compradas' : 'pendientes';
+  const compradas = vistaNecesidades === 'compradas';
+  render(htmlBarra(compradas ? 'Lo comprado' : 'Necesidades de los entornos', compradas ? 'necesidades' : 'inicio') +
+    '<main class="contenido" id="contenido-necesidades"><p class="vacio">Cargando…</p></main>');
   alActualizarDatos = dibujarNecesidades;
   dibujarNecesidades();
 };
@@ -21,52 +25,69 @@ function ordenPrioridad(n) {
   return i === -1 ? 1 : i;
 }
 
+/** Pendientes: por prioridad. Compradas: lo último comprado arriba. */
+function ordenarNecesidades(lista, compradas) {
+  return lista.sort(compradas
+    ? function (a, b) { return String(b.fechaCompra).localeCompare(String(a.fechaCompra)); }
+    : function (a, b) { return ordenPrioridad(a) - ordenPrioridad(b) || String(a.creadoEn).localeCompare(String(b.creadoEn)); });
+}
+
+function gastoNecesidades(lista) {
+  return lista.reduce(function (s, n) { return s + (Number(n.costo) || 0); }, 0);
+}
+
 async function dibujarNecesidades() {
   const lugar = document.getElementById('contenido-necesidades');
   if (!lugar) return;
   const [todas, entornos] = await Promise.all([Datos.listar('Necesidades'), Datos.lista('Entorno')]);
   if (!document.getElementById('contenido-necesidades')) return;
-  const pendientes = todas.filter(function (n) { return n.estado !== 'Comprado'; });
+  const compradas = vistaNecesidades === 'compradas';
+  const deLaVista = todas.filter(function (n) { return (n.estado === 'Comprado') === compradas; });
   const editar = puedeEditar();
 
   let html =
-    '<h1>🛒 NECESIDADES DE LOS ENTORNOS</h1>' +
-    '<p class="saludo">Insumos y herramientas que hay que comprar</p>' +
+    '<h1>' + (compradas ? '✓ LO COMPRADO' : '🛒 NECESIDADES DE LOS ENTORNOS') + '</h1>' +
+    '<p class="saludo">' + (compradas ? 'Insumos y herramientas que ya se compraron' : 'Insumos y herramientas que hay que comprar') + '</p>' +
     '<div class="resumen">' + entornos.map(function (e) {
-      const n = pendientes.filter(function (x) { return x.entorno === e; }).length;
-      const urgentes = pendientes.filter(function (x) { return x.entorno === e && x.prioridad === 'Urgente'; }).length;
-      return '<div class="' + (urgentes ? 'mal' : '') + '"><b>' + n + '</b><span>' + esc(e) + (urgentes ? ' · ' + urgentes + ' urgente' + (urgentes === 1 ? '' : 's') : '') + '</span></div>';
+      const delEntorno = deLaVista.filter(function (x) { return x.entorno === e; });
+      if (compradas) {
+        const gasto = gastoNecesidades(delEntorno);
+        return '<div class="ok"><b>' + delEntorno.length + '</b><span>' + esc(e) + (gasto ? ' · ' + pesos(gasto) : '') + '</span></div>';
+      }
+      const urgentes = delEntorno.filter(function (x) { return x.prioridad === 'Urgente'; }).length;
+      return '<div class="' + (urgentes ? 'mal' : '') + '"><b>' + delEntorno.length + '</b><span>' + esc(e) + (urgentes ? ' · ' + urgentes + ' urgente' + (urgentes === 1 ? '' : 's') : '') + '</span></div>';
     }).join('') + '</div>' +
     '<div class="filtros">' +
       '<label>Entorno<select onchange="filtroNecesidades.entorno = this.value; dibujarNecesidades()"><option value="">Todos</option>' +
         opcionesSelect(entornos, filtroNecesidades.entorno) + '</select></label>' +
-      '<label class="casilla" style="align-self:end"><input type="checkbox"' + (filtroNecesidades.verComprados ? ' checked' : '') +
-        ' onchange="filtroNecesidades.verComprados = this.checked; dibujarNecesidades()"> Mostrar también lo comprado</label>' +
     '</div>' +
-    (editar ? '<button class="boton" onclick="formularioNecesidad()">+ Agregar necesidad</button>' : '');
+    (compradas
+      ? '<button class="boton secundario" onclick="ir(\'necesidades\')">🛒 Volver a lo que falta comprar</button>'
+      : (editar ? '<button class="boton" onclick="formularioNecesidad()">+ Agregar necesidad</button>' : '') +
+        '<button class="boton secundario" onclick="ir(\'necesidades/compradas\')">✓ Ver lo comprado</button>');
 
   const visibles = entornos.filter(function (e) { return !filtroNecesidades.entorno || e === filtroNecesidades.entorno; });
   let algo = false;
   visibles.forEach(function (entorno) {
-    const lista = todas.filter(function (n) {
-      return n.entorno === entorno && (filtroNecesidades.verComprados || n.estado !== 'Comprado');
-    }).sort(function (a, b) {
-      return (a.estado === 'Comprado') - (b.estado === 'Comprado') || ordenPrioridad(a) - ordenPrioridad(b) ||
-        String(a.creadoEn).localeCompare(String(b.creadoEn));
-    });
+    const lista = ordenarNecesidades(deLaVista.filter(function (n) { return n.entorno === entorno; }), compradas);
     if (!lista.length) return;
     algo = true;
-    const sinComprar = lista.filter(function (n) { return n.estado !== 'Comprado'; }).length;
+    const gasto = gastoNecesidades(lista);
     html += '<section class="lista-necesidades">' +
       '<div class="lista-necesidades-cabecera"><h2 class="grupo-titulo">' + (ICONOS_ENTORNO[entorno] || '•') + ' ' + esc(entorno) +
-        ' <span class="contador">' + sinComprar + '</span></h2>' +
-        (sinComprar ? '<div class="acciones"><button class="boton chico secundario" onclick="compartirNecesidades(\'' + esc(entorno) + '\')">📤 Compartir</button>' +
-          '<button class="boton chico secundario" onclick="imprimirNecesidades(\'' + esc(entorno) + '\')">🖨 Imprimir</button></div>' : '') +
+        ' <span class="contador">' + lista.length + '</span>' +
+        (compradas && gasto ? ' <span class="ayuda">gastado ' + pesos(gasto) + '</span>' : '') + '</h2>' +
+        '<div class="acciones">' +
+          (compradas ? '' : '<button class="boton chico secundario" onclick="compartirNecesidades(\'' + esc(entorno) + '\')">📤 Compartir</button>') +
+          '<button class="boton chico secundario" onclick="imprimirNecesidades(\'' + esc(entorno) + '\')">🖨 Imprimir</button></div>' +
       '</div>' +
       lista.map(function (n) { return htmlNecesidad(n, editar); }).join('') +
     '</section>';
   });
-  if (!algo) html += '<p class="vacio">' + (pendientes.length || filtroNecesidades.entorno ? 'No hay necesidades para mostrar.' : 'No hay nada pendiente de compra. 🎉') + '</p>';
+  if (!algo) {
+    html += '<p class="vacio">' + (compradas ? 'No hay compras registradas para mostrar.'
+      : filtroNecesidades.entorno || deLaVista.length ? 'No hay necesidades para mostrar.' : 'No hay nada pendiente de compra. 🎉') + '</p>';
+  }
   lugar.innerHTML = html;
 }
 
@@ -103,7 +124,7 @@ async function formularioNecesidad(id) {
       { nombre: 'unidad', etiqueta: 'Unidad', tipo: 'select', vacio: '—', opciones: unidades.concat(['metro', 'rollo', 'paquete', 'caja']).filter(function (u, i, a) { return a.indexOf(u) === i; }), medio: true },
       { nombre: 'notas', etiqueta: 'Notas', tipo: 'area', ayuda: 'Para qué es, marca o medida, dónde conseguirlo…' }
     ].concat(n && n.estado === 'Comprado' ? [
-      { nombre: 'estado', etiqueta: 'Estado', tipo: 'select', opciones: ['Pendiente', 'Comprado'], seccion: 'Compra', medio: true },
+      { nombre: 'estado', etiqueta: 'Estado', tipo: 'select', opciones: ['Pendiente', 'Comprado'], seccion: 'Compra', medio: true, ayuda: 'Pendiente = vuelve a la lista de compras' },
       { nombre: 'fechaCompra', etiqueta: 'Fecha de compra', tipo: 'fecha', medio: true },
       { nombre: 'costo', etiqueta: 'Costo $', tipo: 'numero', minimo: 0, medio: true },
       { nombre: 'proveedor', etiqueta: 'Dónde se compró', tipo: 'texto', medio: true }
@@ -143,15 +164,13 @@ async function marcarComprado(id) {
   });
 }
 
-async function textoListaNecesidades(entorno) {
-  const lista = (await Datos.listar('Necesidades'))
-    .filter(function (n) { return n.entorno === entorno && n.estado !== 'Comprado'; })
-    .sort(function (a, b) { return ordenPrioridad(a) - ordenPrioridad(b); });
-  return lista;
+async function listaNecesidadesEntorno(entorno, compradas) {
+  return ordenarNecesidades((await Datos.listar('Necesidades'))
+    .filter(function (n) { return n.entorno === entorno && (n.estado === 'Comprado') === !!compradas; }), compradas);
 }
 
 async function compartirNecesidades(entorno) {
-  const lista = await textoListaNecesidades(entorno);
+  const lista = await listaNecesidadesEntorno(entorno, false);
   const texto = '🛒 Necesidades · ' + entorno + ' (' + formatearFecha(hoyTexto()) + ')\n' +
     lista.map(function (n) {
       return '• ' + n.articulo + (n.cantidad ? ' × ' + numero(n.cantidad) + (n.unidad ? ' ' + n.unidad : '') : '') + (n.prioridad === 'Urgente' ? ' (URGENTE)' : '') + (n.notas ? ' — ' + n.notas : '');
@@ -168,10 +187,21 @@ async function compartirNecesidades(entorno) {
 }
 
 async function imprimirNecesidades(entorno) {
-  const lista = await textoListaNecesidades(entorno);
+  const compradas = vistaNecesidades === 'compradas';
+  const lista = await listaNecesidadesEntorno(entorno, compradas);
+  const cantidad = function (n) { return n.cantidad ? numero(n.cantidad) + (n.unidad ? ' ' + n.unidad : '') : ''; };
+  if (compradas) {
+    const gasto = gastoNecesidades(lista);
+    imprimirInforme('Lo comprado · ' + entorno, 'Al ' + formatearFecha(hoyTexto()) + (gasto ? ' · Total gastado ' + pesos(gasto) : ''),
+      htmlTablaInforme(lista.length + ' compras', ['Fecha', 'Qué se compró', 'Cantidad', 'Tipo', 'Costo', 'Dónde', 'Notas'],
+        lista.map(function (n) {
+          return [formatearFecha(n.fechaCompra), n.articulo, cantidad(n), n.tipo, Number(n.costo) ? pesos(n.costo) : '', n.proveedor, n.notas];
+        })));
+    return;
+  }
   imprimirInforme('Necesidades · ' + entorno, 'Lista de compras al ' + formatearFecha(hoyTexto()),
     htmlTablaInforme(lista.length + ' pendientes', ['', 'Qué hace falta', 'Cantidad', 'Tipo', 'Prioridad', 'Notas'],
       lista.map(function (n) {
-        return ['☐', n.articulo, n.cantidad ? numero(n.cantidad) + (n.unidad ? ' ' + n.unidad : '') : '', n.tipo, n.prioridad, n.notas];
+        return ['☐', n.articulo, cantidad(n), n.tipo, n.prioridad, n.notas];
       })));
 }
