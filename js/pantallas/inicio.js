@@ -29,6 +29,11 @@ PANTALLAS.inicio = function () {
       '<div class="grilla">' +
         cuadros +
         '<p class="seccion-titulo">Para todos los entornos</p>' +
+        '<button class="cuadro ancho" onclick="ir(\'cursos\')">' +
+          '<span class="icono">👨‍🎓</span>' +
+          '<span><span class="nombre">Cursos y asistencia <span class="insignia" id="clases-hoy" hidden></span></span>' +
+          '<span class="detalle">Estudiantes por curso y grupo, horarios de clase y toma de lista</span></span>' +
+        '</button>' +
         '<button class="cuadro ancho" onclick="ir(\'tareas\')">' +
           '<span class="icono">📋</span>' +
           '<span><span class="nombre">Tareas de la semana</span>' +
@@ -52,7 +57,21 @@ PANTALLAS.inicio = function () {
 
   if (esDueno()) contarPendientes();
   contarNecesidadesUrgentes();
+  mostrarClasesDeHoy();
 };
+
+/** Muestra en el cuadro Cursos con qué grupos hay clase hoy. */
+async function mostrarClasesDeHoy() {
+  const hoy = hoyTexto();
+  const deHoy = ordenarCursos((await Datos.listar('Cursos')).filter(function (c) {
+    return c.activo !== 'false' && horariosDelDia(c, hoy).length;
+  }));
+  const insignia = document.getElementById('clases-hoy');
+  if (insignia && deHoy.length) {
+    insignia.textContent = 'Hoy: ' + deHoy.map(nombreCurso).join(', ');
+    insignia.hidden = false;
+  }
+}
 
 /** Muestra en el cuadro Necesidades cuántas compras urgentes hay. */
 async function contarNecesidadesUrgentes() {
