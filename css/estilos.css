@@ -892,7 +892,9 @@ fieldset.casillas .boton { margin-bottom: 8px; }
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--verde-oscuro);
+  line-height: 1.1;
 }
+.tarjeta-curso-nombre small { display: block; font-size: 0.8rem; font-weight: 600; color: var(--texto-suave); }
 .tarjeta-curso-datos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cursos-inactivos { margin-top: 18px; }
 .cursos-inactivos summary { cursor: pointer; color: var(--texto-suave); }
@@ -929,6 +931,7 @@ fieldset.casillas .boton { margin-bottom: 8px; }
 }
 .fila-clase strong, .fila-clase .ayuda { display: block; }
 .fila-horario { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 8px; }
+.tres-columnas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .fecha-lista { max-width: 240px; margin: 0 auto; }
 .aviso-lista {
   background: #fff8e1;

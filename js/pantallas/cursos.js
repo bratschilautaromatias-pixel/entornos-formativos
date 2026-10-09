@@ -7,6 +7,7 @@
 const ESTADOS_ASISTENCIA = ['Presente', 'Tarde', 'Ausente'];
 const LETRA_ASISTENCIA = { 'Presente': 'P', 'Tarde': 'T', 'Ausente': 'A' };
 const CURSOS_ANIOS = ['1°', '2°', '3°', '4°', '5°', '6°', '7°'];
+const CURSOS_DIVISIONES = ['1°', '2°', '3°', '4°', '5°', '6°'];
 const GRUPOS_CURSO = ['A', 'B'];
 const DIAS_CLASE = [1, 2, 3, 4, 5]; // lunes a viernes
 
@@ -41,8 +42,14 @@ function horariosDelDia(curso, fecha) {
   return leerHorarios(curso.horarios).filter(function (h) { return h.dia === dia; });
 }
 
+/** Año y división, ej. "2° 2°" */
+function anioDivision(c) {
+  return (c.curso || '') + (c.division ? ' ' + c.division : '');
+}
+
+/** Ej. "2° 2° grupo B" */
 function nombreCurso(c) {
-  return c ? (c.curso || '') + (c.grupo ? ' ' + c.grupo : '') : '(curso borrado)';
+  return c ? anioDivision(c) + (c.grupo ? ' grupo ' + c.grupo : '') : '(curso borrado)';
 }
 
 function nombreEstudiante(e) {
@@ -51,7 +58,8 @@ function nombreEstudiante(e) {
 
 function ordenarCursos(lista) {
   return lista.sort(function (a, b) {
-    return CURSOS_ANIOS.indexOf(a.curso) - CURSOS_ANIOS.indexOf(b.curso) || String(a.grupo).localeCompare(String(b.grupo));
+    return CURSOS_ANIOS.indexOf(a.curso) - CURSOS_ANIOS.indexOf(b.curso) ||
+      CURSOS_DIVISIONES.indexOf(a.division) - CURSOS_DIVISIONES.indexOf(b.division) || String(a.grupo).localeCompare(String(b.grupo));
   });
 }
 
@@ -137,7 +145,7 @@ async function dibujarCursos() {
     const r = resumenAsistencia(d.asistencias.filter(function (a) { return a.cursoId === c.id; }));
     const clases = clasesDelCurso(d.asistencias, c.id).length;
     return '<button class="tarjeta-curso" onclick="ir(\'curso/' + esc(c.id) + '\')">' +
-      '<span class="tarjeta-curso-nombre">' + esc(nombreCurso(c)) + '</span>' +
+      '<span class="tarjeta-curso-nombre">' + esc(anioDivision(c)) + (c.grupo ? '<small>grupo ' + esc(c.grupo) + '</small>' : '') + '</span>' +
       '<span class="tarjeta-curso-datos">' +
         '<span>' + cantidadEstudiantes(c) + ' estudiantes · ' + esc(textoHorarios(c)) + '</span>' +
         '<span class="ayuda">' + (clases ? clases + ' clase' + (clases === 1 ? '' : 's') + ' con lista · asistencia ' + r.pct + '%' : 'Todavía no se tomó lista') + '</span>' +
@@ -354,28 +362,19 @@ async function formularioCurso(id) {
   const c = id ? await Datos.obtener('Cursos', id) : null;
   const horarios = c ? leerHorarios(c.horarios) : [];
   while (horarios.length < 3) horarios.push({ dia: '', desde: '', hasta: '' });
-  const opcionesDia = function (elegido) {
-    return '<option value="">—</option>' + DIAS_CLASE.map(function (d) {
-      return '<option value="' + d + '"' + (Number(elegido) === d ? ' selected' : '') + '>' + NOMBRES_DIAS[d] + '</option>';
-    }).join('');
-  };
 
   abrirModal(
     '<form id="form-curso" novalidate>' +
       '<h2>' + (c ? 'Editar curso' : 'Nuevo curso') + '</h2>' +
-      '<div class="dos-columnas">' +
-        '<label>Curso<select name="curso">' + opcionesSelect(CURSOS_ANIOS, c ? c.curso : '', 'Elegí…') + '</select></label>' +
+      '<div class="tres-columnas">' +
+        '<label>Año<select name="curso">' + opcionesSelect(CURSOS_ANIOS, c ? c.curso : '', 'Elegí…') + '</select></label>' +
+        '<label>División<select name="division">' + opcionesSelect(CURSOS_DIVISIONES, c ? c.division || '' : '', 'Elegí…') + '</select></label>' +
         '<label>Grupo<select name="grupo">' + opcionesSelect(GRUPOS_CURSO, c ? c.grupo || '' : '', '—') + '</select></label>' +
       '</div>' +
+      '<p class="ayuda">Por ejemplo: 2° año, 2° división, grupo B → "2° 2° grupo B".</p>' +
       '<h3 class="form-seccion">Días y horario de clase</h3>' +
       '<p class="ayuda">Los días que tenés clase con este grupo. Esos días la app te propone tomar lista.</p>' +
-      horarios.map(function (h, i) {
-        return '<div class="fila-horario">' +
-          '<label>Día<select name="dia' + i + '">' + opcionesDia(h.dia) + '</select></label>' +
-          '<label>Desde<input type="time" name="desde' + i + '" value="' + esc(h.desde) + '"></label>' +
-          '<label>Hasta<input type="time" name="hasta' + i + '" value="' + esc(h.hasta) + '"></label>' +
-        '</div>';
-      }).join('') +
+      horarios.map(htmlFilaHorario).join('') +
       (c ? '<label class="casilla"><input type="checkbox" name="activo"' + (c.activo !== 'false' ? ' checked' : '') + '> Curso activo (si lo destildás, queda guardado con su asistencia pero no aparece en la lista)</label>' : '') +
       '<label>Notas<textarea name="notas" rows="2" maxlength="1000">' + esc(c ? c.notas : '') + '</textarea></label>' +
       '<p class="mensaje" id="mensaje-curso"></p>' +
@@ -392,8 +391,10 @@ async function formularioCurso(id) {
     evento.preventDefault();
     const f = evento.target;
     const elegidos = [];
-    for (let i = 0; i < 3; i++) {
-      const dia = f['dia' + i].value, desde = f['desde' + i].value, hasta = f['hasta' + i].value;
+    for (const fila of f.querySelectorAll('.fila-horario')) {
+      const dia = fila.querySelector('[data-campo=dia]').value;
+      const desde = fila.querySelector('[data-campo=desde]').value;
+      const hasta = fila.querySelector('[data-campo=hasta]').value;
       if (!dia && !desde && !hasta) continue;
       if (!dia || !desde || !hasta) return mostrarMensaje('mensaje-curso', 'Completá día, hora de inicio y hora de fin en cada horario (o dejalo vacío).', 'error');
       if (hasta <= desde) return mostrarMensaje('mensaje-curso', 'La hora de fin tiene que ser después de la de inicio.', 'error');
@@ -401,14 +402,17 @@ async function formularioCurso(id) {
     }
     const datos = {
       curso: f.curso.value,
+      division: f.division.value,
       grupo: f.grupo.value,
       horarios: elegidos.join('; '),
       activo: c ? (f.activo.checked ? 'true' : 'false') : 'true',
       notas: f.notas.value.trim()
     };
-    if (!datos.curso) return mostrarMensaje('mensaje-curso', 'Elegí el curso.', 'error');
+    if (!datos.curso) return mostrarMensaje('mensaje-curso', 'Elegí el año.', 'error');
+    if (!datos.division) return mostrarMensaje('mensaje-curso', 'Elegí la división.', 'error');
     const repetido = (await Datos.listar('Cursos')).some(function (x) {
-      return x.id !== (c && c.id) && x.activo !== 'false' && x.curso === datos.curso && (x.grupo || '') === datos.grupo;
+      return x.id !== (c && c.id) && x.activo !== 'false' && x.curso === datos.curso &&
+        (x.division || '') === datos.division && (x.grupo || '') === datos.grupo;
     });
     if (repetido && datos.activo === 'true') return mostrarMensaje('mensaje-curso', 'Ya existe un curso activo ' + nombreCurso(datos) + '.', 'error');
     if (c) datos.id = c.id;
@@ -416,6 +420,16 @@ async function formularioCurso(id) {
     cerrarModal();
     if (!c) ir('curso/' + guardado.id);
   });
+}
+
+function htmlFilaHorario(h) {
+  return '<div class="fila-horario">' +
+    '<label>Día<select data-campo="dia"><option value="">—</option>' + DIAS_CLASE.map(function (d) {
+      return '<option value="' + d + '"' + (Number(h.dia) === d ? ' selected' : '') + '>' + NOMBRES_DIAS[d] + '</option>';
+    }).join('') + '</select></label>' +
+    '<label>Desde<input type="time" data-campo="desde" value="' + esc(h.desde) + '"></label>' +
+    '<label>Hasta<input type="time" data-campo="hasta" value="' + esc(h.hasta) + '"></label>' +
+  '</div>';
 }
 
 async function eliminarCurso(id) {
