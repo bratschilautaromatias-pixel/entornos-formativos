@@ -197,7 +197,8 @@ function pantallaFichaSiembra(id) {
         dato('Estado', s.estado) + dato('Fecha de siembra', formatearFecha(s.fechaSiembra)) +
         dato('Superficie', superficie ? numero(superficie) + ' m²' + (Number(s.superficieM2) ? '' : ' (del lomo/parcela)') : 'Sin dato') +
         dato('Cantidad de plantas', s.cantidadPlantas) +
-        dato('Vino del almácigo', almacigo ? nombreCultivo(h, almacigo.cultivoId) + ' del ' + formatearFecha(almacigo.fechaSiembra) : '') +
+        dato('Vino del almácigo', almacigo ? nombreCultivo(h, almacigo.cultivoId) + ' del ' + formatearFecha(almacigo.fechaSiembra) +
+          (almacigo.origen === 'Comprado' ? ' (comprado' + (almacigo.proveedor ? ' a ' + almacigo.proveedor : '') + ')' : '') : '') +
         dato('Notas', s.notas) +
       '</div>' +
 
@@ -276,7 +277,7 @@ async function formularioSiembra(id, valoresIniciales) {
         ayuda: 'Si la dejás vacía se usa la del lomo' },
       { nombre: 'almacigoId', etiqueta: 'Viene del almácigo', tipo: 'select', vacio: 'No (siembra directa)',
         opciones: h.almacigos.filter(function (a) { return a.activo !== 'false' || (s && s.almacigoId === a.id); })
-          .map(function (a) { return { valor: a.id, texto: nombreCultivo(h, a.cultivoId) + ' · ' + formatearFecha(a.fechaSiembra) + ' · ' + a.estado }; }) },
+          .map(function (a) { return { valor: a.id, texto: nombreCultivo(h, a.cultivoId) + ' · ' + formatearFecha(a.fechaSiembra) + (a.origen === 'Comprado' ? ' · comprado' : '') + ' · ' + a.estado }; }) },
       { nombre: 'notas', etiqueta: 'Notas', tipo: 'area' }
     ],
     preguntaEliminar: '¿Eliminar esta siembra? Sus riegos, tratamientos y cosechas quedan guardados.',

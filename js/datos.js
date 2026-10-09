@@ -126,7 +126,7 @@ const Datos = {
 /* Por si todavía no se bajaron las listas del servidor */
 const LISTAS_POR_DEFECTO = {
   Entorno: ['Huerta', 'Forrajes', 'Taller rural', 'Maquinaria'],
-  Curso: ['1°', '2°', '3°', 'Todos'],
+  Curso: ['1°', '2°', '3°', '4°', '5°', '6°', '7°', 'Todos'],
   EstadoTarea: ['Pendiente', 'Realizada', 'Incompleta']
 };
 

@@ -118,8 +118,10 @@ function pantallaAlmacigos() {
         '<option value="activos"' + (verAlmacigos === 'activos' ? ' selected' : '') + '>En almácigo</option>' +
         '<option value="todos"' + (verAlmacigos === 'todos' ? ' selected' : '') + '>Todos (también trasplantados y descartados)</option>' +
       '</select></label>' +
-      (editar ? '<button class="boton" onclick="formularioAlmacigo()">+ Nuevo almácigo</button>' : '') +
+      (editar ? '<button class="boton" onclick="formularioAlmacigo()">+ Nuevo almácigo</button>' +
+        '<button class="boton secundario" style="margin-top:8px" onclick="formularioAlmacigoComprado()">🛒 + Almácigo comprado</button>' : '') +
       (lista.length ? lista.map(function (a) {
+        if (a.origen === 'Comprado') return htmlAlmacigoComprado(h, a, editar);
         const pct = porcentajeGerminacion(a);
         const dias = diasEntre(a.fechaSiembra, hoyTexto());
         const celdas = (Number(a.cantidadCeldas) || 0) * (Number(a.cantidadBandejas) || 1);
@@ -139,9 +141,46 @@ function pantallaAlmacigos() {
   });
 }
 
+/** Plantines comprados: se muestran con el proveedor y la cantidad, sin germinación. */
+function htmlAlmacigoComprado(h, a, editar) {
+  return '<div class="movimiento' + (a.estado === 'En almácigo' ? ' mov-ingresos' : '') + '">' +
+    '<div class="movimiento-texto"><strong>' + esc(nombreCultivo(h, a.cultivoId)) + ' <span class="insignia">🛒 Comprado</span></strong>' +
+      '<span class="ayuda">Comprado el ' + formatearFecha(a.fechaSiembra) + ' · ' + diasEntre(a.fechaSiembra, hoyTexto()) + ' días · ' + esc(a.estado) + '</span>' +
+      '<span class="ayuda">Proveedor: ' + esc(a.proveedor || '—') + '</span>' +
+      (a.notas ? '<span class="ayuda notas">' + esc(a.notas) + '</span>' : '') +
+    '</div>' +
+    '<div class="movimiento-valor">' + (a.cantidadPlantines ? esc(a.cantidadPlantines) : '—') + '<br><span class="ayuda">plantines</span></div>' +
+    (editar ? '<div class="movimiento-acciones">' +
+      (a.estado === 'En almácigo' ? '<button class="boton chico" onclick="trasplantarAlmacigo(\'' + esc(a.id) + '\')">Trasplantar</button>' : '') +
+      '<button class="boton chico secundario" onclick="formularioAlmacigoComprado(\'' + esc(a.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+  '</div>';
+}
+
+async function formularioAlmacigoComprado(id) {
+  const h = await cargarHuerta();
+  const a = id ? h.almacigosPorId[id] : null;
+  await abrirFormulario({
+    tabla: 'Almacigos',
+    titulo: a ? 'Editar almácigo comprado' : '🛒 Almácigo comprado',
+    registro: a,
+    valores: { fechaSiembra: hoyTexto(), estado: 'En almácigo', activo: 'true' },
+    campos: [
+      { nombre: 'cultivoId', etiqueta: 'Cultivo', tipo: 'select', requerido: true, vacio: 'Elegí…', opciones: h.cultivos.map(function (c) { return { valor: c.id, texto: c.nombre }; }) },
+      { nombre: 'fechaSiembra', etiqueta: 'Fecha de compra', tipo: 'fecha', requerido: true, medio: true },
+      { nombre: 'estado', etiqueta: 'Estado', tipo: 'select', opciones: HUERTA.estadosAlmacigo, requerido: true, medio: true },
+      { nombre: 'cantidadPlantines', etiqueta: 'Cantidad de plantines', tipo: 'entero', minimo: 1, requerido: true, medio: true },
+      { nombre: 'proveedor', etiqueta: 'Proveedor', tipo: 'texto', requerido: true, medio: true },
+      { nombre: 'notas', etiqueta: 'Notas', tipo: 'area' }
+    ],
+    antesDeGuardar: function (datos) { datos.origen = 'Comprado'; if (!datos.activo) datos.activo = 'true'; },
+    preguntaEliminar: '¿Eliminar este almácigo comprado?'
+  });
+}
+
 async function formularioAlmacigo(id) {
   const h = await cargarHuerta();
   const a = id ? h.almacigosPorId[id] : null;
+  if (a && a.origen === 'Comprado') return formularioAlmacigoComprado(id);
   await abrirFormulario({
     tabla: 'Almacigos',
     titulo: a ? 'Editar almácigo' : 'Nuevo almácigo',

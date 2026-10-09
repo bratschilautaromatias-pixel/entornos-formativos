@@ -6,6 +6,13 @@
  */
 const ICONOS_ENTORNO = { 'Huerta': '🥬', 'Forrajes': '🌾', 'Taller rural': '🔧', 'Maquinaria': '🚜' };
 const filtrosTareas = { entorno: '', curso: '' };
+const GRUPOS_TAREA = ['A', 'B'];
+
+/** Cursos de 1° a 7°, más los otros valores que tenga la lista (por ejemplo "Todos"). */
+function cursosDeTareas(lista) {
+  const base = ['1°', '2°', '3°', '4°', '5°', '6°', '7°'];
+  return base.concat(lista.filter(function (c) { return base.indexOf(c) === -1; }));
+}
 let lunesTareas = '';
 
 PANTALLAS.tareas = function (parametro) {
@@ -64,7 +71,7 @@ async function dibujarTareas() {
       '<label>Entorno<select onchange="filtrosTareas.entorno = this.value; dibujarTareas()">' +
         opcionesSelect(entornos, filtrosTareas.entorno, 'Todos') + '</select></label>' +
       '<label>Curso<select onchange="filtrosTareas.curso = this.value; dibujarTareas()">' +
-        opcionesSelect(cursos, filtrosTareas.curso, 'Cualquiera') + '</select></label>' +
+        opcionesSelect(cursosDeTareas(cursos), filtrosTareas.curso, 'Cualquiera') + '</select></label>' +
     '</div>' +
 
     '<div class="resumen">' +
@@ -134,7 +141,7 @@ function htmlTarea(t, estados, editar, esAtrasada, lugar) {
   const estado = t.estado || 'Pendiente';
   const detalles = [
     esAtrasada ? (ICONOS_ENTORNO[t.entorno] || '•') + ' ' + esc(t.entorno) : '',
-    t.curso ? esc(t.curso) : '',
+    t.curso || t.grupo ? esc(t.curso ? t.curso + (t.grupo ? ' ' + t.grupo : '') : 'Grupo ' + t.grupo) : '',
     esAtrasada ? 'era del ' + esc(NOMBRES_DIAS[textoAFecha(t.fecha).getDay()].toLowerCase()) + ' ' + diaMes(t.fecha) : '',
     t.fechaOriginal ? '↪ movida (antes ' + diaMes(t.fechaOriginal) + ')' : ''
   ].filter(Boolean).join(' · ');
@@ -235,7 +242,11 @@ async function formularioTarea(id) {
       '</div>' +
       '<div class="dos-columnas">' +
         '<label>Entorno<select name="entorno" required>' + opcionesSelect(entornos, t ? t.entorno : (filtrosTareas.entorno || ''), 'Elegí…') + '</select></label>' +
-        '<label>Curso<select name="curso">' + opcionesSelect(cursos, t ? t.curso : (filtrosTareas.curso || ''), '—') + '</select></label>' +
+        '<label>Curso<select name="curso">' + opcionesSelect(cursosDeTareas(cursos), t ? t.curso : (filtrosTareas.curso || ''), '—') + '</select></label>' +
+      '</div>' +
+      '<div class="dos-columnas">' +
+        '<span></span>' +
+        '<label>Grupo<select name="grupo">' + opcionesSelect(GRUPOS_TAREA, t ? t.grupo || '' : '', '—') + '</select></label>' +
       '</div>' +
       '<label>Notas<textarea name="notas" rows="2" maxlength="1000">' + esc(t ? t.notas : '') + '</textarea></label>' +
       '<p class="mensaje" id="mensaje-tarea"></p>' +
@@ -257,6 +268,7 @@ async function formularioTarea(id) {
       estado: f.estado.value,
       entorno: f.entorno.value,
       curso: f.curso.value,
+      grupo: f.grupo.value,
       notas: f.notas.value.trim()
     };
     if (!datos.tarea) return mostrarMensaje('mensaje-tarea', 'Escribí qué hay que hacer.', 'error');
