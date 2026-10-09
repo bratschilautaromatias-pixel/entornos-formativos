@@ -961,3 +961,33 @@ fieldset.casillas .boton { margin-bottom: 8px; }
 .marca-asistencia.presente.activa { background: var(--verde); border-color: var(--verde); color: #fff; }
 .marca-asistencia.tarde.activa { background: var(--ambar); border-color: var(--ambar); color: #1c2b1d; }
 .marca-asistencia.ausente.activa { background: var(--rojo); border-color: var(--rojo); color: #fff; }
+
+/* ===== Informe escrito ===== */
+.tarjeta-opciones-informe {
+  background: var(--tarjeta);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.informe-escrito {
+  background: var(--tarjeta);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 16px 18px;
+  margin-top: 12px;
+  line-height: 1.55;
+}
+.informe-escrito h2 { margin: 0; color: var(--verde-oscuro); font-size: 1.2rem; }
+.informe-escrito h3 {
+  color: var(--verde-oscuro);
+  border-bottom: 1px solid var(--borde);
+  padding-bottom: 3px;
+  margin: 20px 0 8px;
+  font-size: 1.05rem;
+}
+.informe-escrito p { margin: 6px 0; }
+.informe-escrito ul { margin: 4px 0 10px; padding-left: 20px; }
+.informe-escrito li { margin: 2px 0; }
+.informe-impreso .informe-escrito { box-shadow: none; padding: 0; line-height: 1.45; }
+.informe-impreso .informe-escrito h3 { break-after: avoid; }

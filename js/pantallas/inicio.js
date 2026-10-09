@@ -45,7 +45,12 @@ PANTALLAS.inicio = function () {
           '<span class="detalle">Insumos y herramientas que hay que comprar, por entorno</span></span>' +
         '</button>' +
         (esDueno()
-          ? '<button class="cuadro ancho" onclick="ir(\'usuarios\')">' +
+          ? '<button class="cuadro ancho" onclick="ir(\'informe-escrito\')">' +
+              '<span class="icono">📝</span>' +
+              '<span><span class="nombre">Generar informe escrito</span>' +
+              '<span class="detalle">Solo lo ves vos: la app redacta el informe de producción o económico de un período</span></span>' +
+            '</button>' +
+            '<button class="cuadro ancho" onclick="ir(\'usuarios\')">' +
               '<span class="icono">👥</span>' +
               '<span><span class="nombre">Usuarios <span class="insignia" id="pendientes" hidden></span></span>' +
               '<span class="detalle">Aprobar cuentas nuevas y elegir quién es editor o visor</span></span>' +
