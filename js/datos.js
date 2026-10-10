@@ -55,6 +55,12 @@ const BaseLocal = (function () {
         elementos.forEach(function (e) { almacen.put(e); });
       });
     },
+    /** Saca registros del equipo (solo para reparar registros que el servidor nunca aceptó). */
+    borrar: function (claves) {
+      return transaccion('registros', 'readwrite', function (almacen) {
+        claves.forEach(function (c) { almacen.delete(c); });
+      });
+    },
     leerMeta: async function (clave) {
       const fila = await transaccion('meta', 'readonly', function (almacen) { return almacen.get(clave); });
       return fila ? fila.valor : null;
@@ -183,6 +189,9 @@ const Sincronizador = {
   ejecutar: async function () {
     if (!navigator.onLine) return this.actualizarEstado();
 
+    // Listas tomadas con la versión anterior: tenían un id que el servidor no aceptaba
+    if (typeof repararAsistenciasViejas === 'function') await repararAsistenciasViejas();
+
     const pendientes = (await BaseLocal.leerTodos()).filter(function (f) { return f.pendiente; });
     this.estado = 'sincronizando';
     this.notificar();
@@ -194,9 +203,13 @@ const Sincronizador = {
         cambios: pendientes.map(function (f) { return { tabla: f.tabla, registro: f.datos }; })
       });
 
-      // Lo enviado ya no está pendiente (salvo que se haya vuelto a modificar mientras tanto)
+      // Lo enviado ya no está pendiente (salvo que se haya vuelto a modificar mientras tanto,
+      // o que el servidor lo haya rechazado: en ese caso queda guardado en el equipo y se avisa)
+      const rechazados = respuesta.rechazados || [];
       const enviados = {};
-      pendientes.forEach(function (f) { enviados[f.clave] = f.datos.modificadoEn; });
+      pendientes.forEach(function (f) {
+        if (rechazados.indexOf(f.clave) === -1) enviados[f.clave] = f.datos.modificadoEn;
+      });
 
       const locales = {};
       (await BaseLocal.leerTodos()).forEach(function (f) { locales[f.clave] = f; });
@@ -231,7 +244,9 @@ const Sincronizador = {
       await BaseLocal.escribirMeta('tablasConocidas', tablasServidor);
       await BaseLocal.escribirMeta('ultimaSincronizacion', hayNuevas ? '' : respuesta.servidorEn);
       if (hayNuevas) this.repetir = true;
-      this.mensajeError = '';
+      this.mensajeError = rechazados.length
+        ? 'El servidor no aceptó ' + rechazados.length + ' registro' + (rechazados.length === 1 ? '' : 's') + '. Quedan guardados en este equipo; avisá para revisarlo.'
+        : '';
       if (aEscribir.length) avisarCambioDeDatos();
     } catch (e) {
       if (e.codigo === 'SESION') {

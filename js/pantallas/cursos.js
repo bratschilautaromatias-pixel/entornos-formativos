@@ -71,6 +71,7 @@ function ordenarEstudiantes(lista) {
 }
 
 async function cargarCursos() {
+  await repararAsistenciasViejas();
   const [cursos, estudiantes, asistencias] = await Promise.all([
     Datos.listar('Cursos'), Datos.listar('Estudiantes'), Datos.listar('Asistencias')
   ]);
@@ -246,9 +247,49 @@ PANTALLAS.lista = function (parametro) {
   cargarTomaLista();
 };
 
-function idAsistencia(cursoId, fecha, estudianteId) {
-  // Siempre el mismo id: si dos equipos toman la misma lista sin internet, no se duplica
-  return 'as_' + cursoId + '_' + fecha + '_' + estudianteId;
+/** Ids que acepta el servidor (igual que en Sincronizacion.gs): letras, números y guiones, de 8 a 64. */
+const ID_VALIDO_SERVIDOR = /^[A-Za-z0-9-]{8,64}$/;
+
+/**
+ * Siempre el mismo id para un estudiante en una fecha: si dos equipos toman la misma lista sin internet,
+ * no se duplica. Ej. "as-20261009-<id del estudiante>".
+ */
+function idAsistencia(fecha, estudianteId) {
+  const id = 'as-' + String(fecha).replace(/-/g, '') + '-' + estudianteId;
+  if (ID_VALIDO_SERVIDOR.test(id)) return id;
+  // Por si el id del estudiante fuera muy largo o con otros caracteres: una huella corta del texto
+  let a = 0x811c9dc5, b = 0x01000193;
+  for (const letra of id) {
+    a = Math.imul(a ^ letra.charCodeAt(0), 16777619) >>> 0;
+    b = Math.imul(b ^ letra.charCodeAt(0), 2246822519) >>> 0;
+  }
+  return 'as-' + String(fecha).replace(/-/g, '') + '-' + a.toString(16).padStart(8, '0') + b.toString(16).padStart(8, '0');
+}
+
+/**
+ * La primera versión de la toma de lista usaba ids con "_" que el servidor no aceptaba: esas listas
+ * quedaron solo en el equipo donde se tomaron. Acá se pasan al id nuevo (conservando la fecha de
+ * modificación original) para que se envíen y lleguen a los demás equipos.
+ */
+async function repararAsistenciasViejas() {
+  const filas = await BaseLocal.leerTabla('Asistencias');
+  const viejas = filas.filter(function (f) { return f.datos && !ID_VALIDO_SERVIDOR.test(String(f.datos.id)); });
+  if (!viejas.length) return;
+  const porClave = {};
+  filas.forEach(function (f) { porClave[f.clave] = f; });
+  const elegidas = {};
+  viejas.forEach(function (f) {
+    const d = f.datos;
+    if (!d.fecha || !d.estudianteId) return;
+    const id = idAsistencia(d.fecha, d.estudianteId);
+    const clave = 'Asistencias|' + id;
+    const actual = elegidas[clave] || porClave[clave];
+    if (actual && String(actual.datos.modificadoEn) >= String(d.modificadoEn)) return; // ya hay una más nueva
+    elegidas[clave] = { clave: clave, tabla: 'Asistencias', datos: Object.assign({}, d, { id: id }), pendiente: 1 };
+  });
+  await BaseLocal.escribir(Object.keys(elegidas).map(function (c) { return elegidas[c]; }));
+  await BaseLocal.borrar(viejas.map(function (f) { return f.clave; }));
+  avisarCambioDeDatos();
 }
 
 async function cargarTomaLista() {
@@ -345,7 +386,7 @@ async function guardarTomaLista() {
       const estado = tomaLista.marcas[e.id];
       if (!estado || tomaLista.guardadas[e.id] === estado) continue;
       await Datos.guardar('Asistencias', {
-        id: idAsistencia(tomaLista.cursoId, tomaLista.fecha, e.id),
+        id: idAsistencia(tomaLista.fecha, e.id),
         cursoId: tomaLista.cursoId, estudianteId: e.id, fecha: tomaLista.fecha, estado: estado, eliminado: 'false'
       });
     }
