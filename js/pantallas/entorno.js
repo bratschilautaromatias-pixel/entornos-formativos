@@ -41,6 +41,13 @@ PANTALLAS.entorno = function (clave) {
           '<span><span class="nombre">Tareas de la semana</span>' +
           '<span class="detalle">Solo las de ' + esc(entorno.nombre) + '</span></span>' +
         '</button>' +
+        (entorno.clave !== 'taller' && puedeEditar()
+          ? '<button class="cuadro ancho" onclick="formularioPedidoTaller(null, \'' + esc(entorno.nombre) + '\')">' +
+              '<span class="icono">📨</span>' +
+              '<span><span class="nombre">Pedirle algo al Taller rural</span>' +
+              '<span class="detalle">Que fabrique o repare algo para ' + esc(entorno.nombre) + '</span></span>' +
+            '</button>'
+          : '') +
       '</div>' +
     '</main>'
   );

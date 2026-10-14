@@ -97,7 +97,7 @@ function htmlNecesidad(n, editar) {
   return '<div class="necesidad' + (comprado ? ' comprada' : '') + (n.prioridad === 'Urgente' && !comprado ? ' urgente' : '') + '">' +
     '<div class="necesidad-texto"><strong>' + (NECESIDADES.iconoTipo[n.tipo] || '📦') + ' ' + esc(n.articulo) +
       (n.cantidad ? ' <span class="necesidad-cantidad">× ' + numero(n.cantidad) + (n.unidad ? ' ' + esc(n.unidad) : '') + '</span>' : '') + '</strong>' +
-      '<span class="ayuda">' + [n.tipo, comprado ? '' : n.prioridad, 'pidió ' + (n.creadoPor || '?') + ' el ' + formatearFecha(String(n.creadoEn).slice(0, 10))].filter(Boolean).map(esc).join(' · ') + '</span>' +
+      '<span class="ayuda">' + [n.tipo, comprado ? '' : n.prioridad, 'pidió ' + (n.creadoPor || '?') + ' el ' + formatearFecha(fechaLocal(n.creadoEn))].filter(Boolean).map(esc).join(' · ') + '</span>' +
       (comprado ? '<span class="ayuda">✓ Comprado el ' + formatearFecha(n.fechaCompra) + (Number(n.costo) ? ' · ' + pesos(n.costo) : '') +
         (n.proveedor ? ' · ' + esc(n.proveedor) : '') + (n.egresoId ? ' · registrado en Economía' : '') + '</span>' : '') +
       (n.notas ? '<span class="ayuda notas">' + esc(n.notas) + '</span>' : '') +

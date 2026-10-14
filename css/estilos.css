@@ -1026,3 +1026,31 @@ fieldset.casillas .boton { margin-bottom: 8px; }
 .fila-plan.ok { border-left-color: var(--verde); }
 .fila-plan .estudiante-texto { flex: 1 1 220px; }
 .tarjeta-curso.baja { opacity: 0.6; }
+
+/* ===== Taller rural ===== */
+.barra-avance {
+  display: block;
+  height: 8px;
+  background: var(--borde);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.barra-avance i { display: block; height: 100%; background: var(--verde); border-radius: 999px; }
+.barra-avance.grande { height: 12px; margin: 4px 0 12px; }
+.fila-etapa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--tarjeta);
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  padding: 6px 10px;
+  margin-bottom: 6px;
+}
+.fila-etapa .casilla { margin: 0; }
+.fila-etapa.hecha .casilla { color: var(--texto-suave); text-decoration: line-through; }
+.subtitulo-categoria { font-size: 0.85rem; color: var(--texto-suave); margin: 14px 0 6px; }
+.fila-clase.bajo-minimo { border-color: var(--rojo); background: var(--rojo-claro); }
+.fila-clase.baja, .movimiento.baja { opacity: 0.6; }

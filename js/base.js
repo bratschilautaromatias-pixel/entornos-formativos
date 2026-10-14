@@ -351,6 +351,17 @@ function diaMes(texto) {
 }
 
 /** "2026-10-01T22:55:00.000Z" o "2026-10-01" → "01/10/2026" */
+/**
+ * Fecha "AAAA-MM-DD" en hora de Argentina a partir de un momento guardado (ej. creadoEn "2026-10-14T01:30:00Z").
+ * Cortar el texto daría la fecha en hora universal: de noche ya sería el día siguiente.
+ */
+function fechaLocal(valor) {
+  if (!valor) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return valor;
+  const fecha = new Date(valor);
+  return isNaN(fecha) ? String(valor).slice(0, 10) : fechaATexto(fecha);
+}
+
 function formatearFecha(valor) {
   if (!valor) return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) {

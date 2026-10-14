@@ -70,7 +70,8 @@ async function generarInformeEscrito(boton) {
     const cuerpo = informeEscrito.tipo === 'economico'
       ? await redactarEconomico(entorno, periodo)
       : entorno.clave === 'forrajes' ? await redactarProductivoForrajes(periodo)
-      : entorno.clave === 'maquinaria' ? await redactarProductivoMaquinaria(periodo) : await redactarProductivoHuerta(periodo);
+      : entorno.clave === 'maquinaria' ? await redactarProductivoMaquinaria(periodo)
+      : entorno.clave === 'taller' ? await redactarProductivoTaller(periodo) : await redactarProductivoHuerta(periodo);
     const titulo = 'Informe ' + (informeEscrito.tipo === 'economico' ? 'económico' : 'de producción') + ' · ' + entorno.nombre;
     const subtitulo = 'Escuela Agraria Parque Pereyra Iraola · ' + periodo.titulo;
     ultimoInformeEscrito = { titulo: titulo, subtitulo: subtitulo, cuerpo: cuerpo };
@@ -241,7 +242,7 @@ async function redactarProductivoHuerta(periodo) {
   const finDeSiembra = function (s) {
     if (HUERTA.activas.indexOf(s.estado) !== -1) return null;
     const fechas = h.cosechas.filter(function (c) { return c.siembraId === s.id; }).map(function (c) { return c.fecha; }).sort();
-    return fechas.length ? fechas[fechas.length - 1] : (String(s.modificadoEn || '').slice(0, 10) || s.fechaSiembra);
+    return fechas.length ? fechas[fechas.length - 1] : (fechaLocal(s.modificadoEn) || s.fechaSiembra);
   };
   const enSuelo = h.siembras.filter(function (s) {
     const fin = finDeSiembra(s);
@@ -405,7 +406,7 @@ async function redactarProductivoForrajes(periodo) {
   const finDeSiembra = function (s) {
     if (s.estado === 'En crecimiento') return null;
     const fechas = f.cosechasForraje.filter(function (c) { return c.siembraId === s.id; }).map(function (c) { return c.fecha; }).sort();
-    return fechas.length ? fechas[fechas.length - 1] : (String(s.modificadoEn || '').slice(0, 10) || s.fechaSiembra);
+    return fechas.length ? fechas[fechas.length - 1] : (fechaLocal(s.modificadoEn) || s.fechaSiembra);
   };
   const enSuelo = f.siembrasForraje.filter(function (s) {
     const fin = finDeSiembra(s);

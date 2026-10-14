@@ -7,7 +7,7 @@
 const MAQUINARIA = {
   tipos: ['Tractor', 'Motocultor', 'Implemento', 'Herramienta a motor', 'Otra'],
   combustibles: ['Gasoil', 'Nafta', 'Sin motor'],
-  iconos: { 'Tractor': '🚜', 'Motocultor': '🛞', 'Implemento': '⚙', 'Herramienta a motor': '🪚', 'Otra': '🔩' },
+  iconos: { 'Tractor': '🚜', 'Motocultor': '🚜', 'Implemento': '⚙', 'Herramienta a motor': '⛏', 'Otra': '🔩' },
   // Avisos como la planilla: PRÓXIMO si faltan 20 h o 15 días o menos (en tareas cortas, un cuarto del intervalo)
   avisoHoras: 20,
   avisoDias: 15,

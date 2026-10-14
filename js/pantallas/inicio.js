@@ -6,7 +6,8 @@ const ENTORNOS = [
     produccion: { nombre: 'Producción', icono: '🌱', detalle: 'Parcelas, cultivos, almácigos, siembras, riego, tratamientos y cosechas' } },
   { clave: 'forrajes', nombre: 'Forrajes', icono: '🌾', detalle: 'Pasturas, reservas y raciones', activo: true,
     produccion: { nombre: 'Producción', icono: '🌱', detalle: 'Lotes, especies, siembras, cosechas, reservas y pastoreos' } },
-  { clave: 'taller', nombre: 'Taller rural', icono: '🔧', detalle: 'Próximamente', activo: false },
+  { clave: 'taller', nombre: 'Taller rural', icono: '🔧', detalle: 'Proyectos, pedidos, pañol y materiales', activo: true,
+    produccion: { nombre: 'Taller', icono: '🔧', detalle: 'Proyectos y obras, pedidos de los entornos, pañol de herramientas y stock de materiales' } },
   { clave: 'maquinaria', nombre: 'Maquinaria', icono: '🚜', detalle: 'Tractores, motocultores y su mantenimiento', activo: true,
     produccion: { nombre: 'Máquinas y mantenimiento', icono: '🚜', detalle: 'Plan de servicios, registro de uso con chequeo diario, servicios y reparaciones' } }
 ];
@@ -20,6 +21,7 @@ PANTALLAS.inicio = function () {
       '<span class="icono">' + e.icono + '</span>' +
       '<span class="nombre">' + esc(e.nombre) + '</span>' +
       (e.clave === 'maquinaria' ? '<span class="insignia" id="insignia-maquinaria" hidden></span>' : '') +
+      (e.clave === 'taller' ? '<span class="insignia" id="insignia-taller" hidden></span>' : '') +
       '<span class="detalle">' + esc(e.detalle) + '</span>' +
     '</button>';
   }).join('');
@@ -68,6 +70,7 @@ PANTALLAS.inicio = function () {
   contarNecesidadesUrgentes();
   mostrarClasesDeHoy();
   contarServiciosVencidos();
+  contarPedidosTaller();
 };
 
 /** Muestra en el cuadro Cursos con qué grupos hay clase hoy. */
