@@ -991,3 +991,38 @@ fieldset.casillas .boton { margin-bottom: 8px; }
 .informe-escrito li { margin: 2px 0; }
 .informe-impreso .informe-escrito { box-shadow: none; padding: 0; line-height: 1.45; }
 .informe-impreso .informe-escrito h3 { break-after: avoid; }
+
+/* ===== Maquinaria ===== */
+.estado-plan {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #eceff1;
+  color: var(--texto-suave);
+}
+.estado-plan.ok { background: var(--verde-claro); color: var(--verde-oscuro); }
+.estado-plan.proximo { background: #fff3c4; color: #7a5a00; }
+.estado-plan.vencido { background: var(--rojo-claro); color: var(--rojo); }
+.alerta-servicio, .fila-plan {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--tarjeta);
+  border-left: 5px solid var(--gris);
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  padding: 9px 12px;
+  margin-bottom: 7px;
+}
+.alerta-servicio > div:first-child { flex: 1 1 200px; }
+.alerta-servicio strong, .alerta-servicio .ayuda { display: block; }
+.alerta-servicio.vencido, .fila-plan.vencido { border-left-color: var(--rojo); }
+.alerta-servicio.proximo, .fila-plan.proximo { border-left-color: var(--ambar); }
+.fila-plan.ok { border-left-color: var(--verde); }
+.fila-plan .estudiante-texto { flex: 1 1 220px; }
+.tarjeta-curso.baja { opacity: 0.6; }

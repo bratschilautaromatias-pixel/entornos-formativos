@@ -15,6 +15,8 @@ PANTALLAS.tablero = function (parametro) {
   const tipo = partes[0] === 'economico' ? 'economico' : 'productivo';
   const entorno = entornoPorClave(partes[1]);
   if (!entorno) return ir('inicio');
+  // Tablero productivo solo para Huerta y Forrajes (el económico sirve para todos)
+  if (tipo === 'productivo' && entorno.clave !== 'huerta' && entorno.clave !== 'forrajes') return ir('productivo/' + entorno.clave);
   const volver = (tipo === 'economico' ? 'economico/' : 'productivo/') + entorno.clave;
   render(htmlBarra((tipo === 'economico' ? 'Tablero económico · ' : 'Tablero productivo · ') + entorno.nombre, volver) +
     '<main class="contenido contenido-tablero">' +
@@ -471,6 +473,8 @@ function conceptoEgreso(producto) {
   if (/sustrato|tierra|abono|fertiliz|compost|enmienda/.test(t)) return 'Sustratos y fertilizantes';
   if (/riego|manguera|aspersor|gotero|cinta|microaspersor/.test(t)) return 'Riego';
   if (/herbicid|insecticid|fungicid|agroqu|fitosanit/.test(t)) return 'Fitosanitarios';
+  if (/aceite|filtro|repuesto|correa|buj[ií]a|cuchilla|fresa|neum[aá]tic|bater[ií]a|grasa|refrigerante/.test(t)) return 'Repuestos e insumos de máquinas';
+  if (/reparaci|service|servicio|taller|mano de obra|v[aá]lvula|inyector/.test(t)) return 'Servicios y reparaciones';
   return 'Varios';
 }
 

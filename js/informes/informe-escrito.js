@@ -69,7 +69,8 @@ async function generarInformeEscrito(boton) {
   try {
     const cuerpo = informeEscrito.tipo === 'economico'
       ? await redactarEconomico(entorno, periodo)
-      : entorno.clave === 'forrajes' ? await redactarProductivoForrajes(periodo) : await redactarProductivoHuerta(periodo);
+      : entorno.clave === 'forrajes' ? await redactarProductivoForrajes(periodo)
+      : entorno.clave === 'maquinaria' ? await redactarProductivoMaquinaria(periodo) : await redactarProductivoHuerta(periodo);
     const titulo = 'Informe ' + (informeEscrito.tipo === 'economico' ? 'económico' : 'de producción') + ' · ' + entorno.nombre;
     const subtitulo = 'Escuela Agraria Parque Pereyra Iraola · ' + periodo.titulo;
     ultimoInformeEscrito = { titulo: titulo, subtitulo: subtitulo, cuerpo: cuerpo };

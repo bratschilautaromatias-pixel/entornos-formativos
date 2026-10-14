@@ -3,6 +3,7 @@
  * Igual que la planilla Tareas_Entornos_Formativos: semana de lunes a viernes,
  * estado de cada tarea, mover a la semana siguiente y bloque de atrasadas.
  * La dirección #/tareas/2026-09-29 muestra la semana que empieza ese lunes.
+ * Desde un entorno: #/tareas/entorno/huerta (y #/tareas/entorno/huerta/2026-09-29) muestra solo las de ese entorno.
  */
 const ICONOS_ENTORNO = { 'Huerta': '🥬', 'Forrajes': '🌾', 'Taller rural': '🔧', 'Maquinaria': '🚜' };
 const filtrosTareas = { entorno: '', curso: '' };
@@ -14,16 +15,35 @@ function cursosDeTareas(lista) {
   return base.concat(lista.filter(function (c) { return base.indexOf(c) === -1; }));
 }
 let lunesTareas = '';
+let entornoFijoTareas = null; // { clave, nombre } cuando se entra desde un entorno
 
 PANTALLAS.tareas = function (parametro) {
-  lunesTareas = /^\d{4}-\d{2}-\d{2}$/.test(parametro) ? lunesDe(parametro) : lunesSemanaActual();
+  const partes = String(parametro || '').split('/');
+  let fecha = parametro;
+  entornoFijoTareas = null;
+  if (partes[0] === 'entorno') {
+    entornoFijoTareas = ENTORNOS.find(function (e) { return e.clave === partes[1]; }) || null;
+    fecha = partes[2] || '';
+  }
+  lunesTareas = /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? lunesDe(fecha) : lunesSemanaActual();
   render(
-    htmlBarra('Tareas de la semana', 'inicio') +
+    htmlBarra('Tareas de la semana' + (entornoFijoTareas ? ' · ' + entornoFijoTareas.nombre : ''),
+      entornoFijoTareas ? 'entorno/' + entornoFijoTareas.clave : 'inicio') +
     '<main class="contenido" id="pantalla-tareas"><p class="vacio">Cargando tareas…</p></main>'
   );
   alActualizarDatos = dibujarTareas;
   dibujarTareas();
 };
+
+/** Dirección de una semana, conservando el entorno si se entró desde uno. */
+function rutaTareas(lunes) {
+  return 'tareas/' + (entornoFijoTareas ? 'entorno/' + entornoFijoTareas.clave + '/' : '') + (lunes || '');
+}
+
+/** El entorno que se está mirando: el fijo (desde un entorno) o el elegido en el filtro. */
+function entornoFiltradoTareas() {
+  return entornoFijoTareas ? entornoFijoTareas.nombre : filtrosTareas.entorno;
+}
 
 async function dibujarTareas() {
   const contenedor = document.getElementById('pantalla-tareas');
@@ -43,7 +63,7 @@ async function dibujarTareas() {
   if (!document.getElementById('pantalla-tareas')) return;
 
   const filtradas = todas.filter(function (t) {
-    return (!filtrosTareas.entorno || t.entorno === filtrosTareas.entorno) &&
+    return (!entornoFiltradoTareas() || t.entorno === entornoFiltradoTareas()) &&
            (!filtrosTareas.curso || t.curso === filtrosTareas.curso);
   });
   const deLaSemana = filtradas.filter(function (t) { return t.fecha >= lunes && t.fecha <= viernes; });
@@ -60,16 +80,17 @@ async function dibujarTareas() {
 
   let html =
     '<div class="semana-nav">' +
-      '<button class="boton chico secundario" onclick="ir(\'tareas/' + sumarDias(lunes, -7) + '\')" aria-label="Semana anterior">←<span class="solo-ancho"> Anterior</span></button>' +
+      '<button class="boton chico secundario" onclick="ir(\'' + rutaTareas(sumarDias(lunes, -7)) + '\')" aria-label="Semana anterior">←<span class="solo-ancho"> Anterior</span></button>' +
       '<div class="semana-titulo"><strong>Del lunes ' + diaMes(lunes) + ' al viernes ' + diaMes(viernes) + '</strong>' +
         '<span>' + etiquetaSemana + '</span></div>' +
-      '<button class="boton chico secundario" onclick="ir(\'tareas/' + sumarDias(lunes, 7) + '\')" aria-label="Semana siguiente"><span class="solo-ancho">Siguiente </span>→</button>' +
+      '<button class="boton chico secundario" onclick="ir(\'' + rutaTareas(sumarDias(lunes, 7)) + '\')" aria-label="Semana siguiente"><span class="solo-ancho">Siguiente </span>→</button>' +
     '</div>' +
-    (lunes !== actual ? '<p class="centrado"><a href="#/tareas">Volver a esta semana</a></p>' : '') +
+    (lunes !== actual ? '<p class="centrado"><a href="#/' + rutaTareas('') + '">Volver a esta semana</a></p>' : '') +
 
     '<div class="filtros">' +
-      '<label>Entorno<select onchange="filtrosTareas.entorno = this.value; dibujarTareas()">' +
-        opcionesSelect(entornos, filtrosTareas.entorno, 'Todos') + '</select></label>' +
+      (entornoFijoTareas ? '' :
+        '<label>Entorno<select onchange="filtrosTareas.entorno = this.value; dibujarTareas()">' +
+          opcionesSelect(entornos, filtrosTareas.entorno, 'Todos') + '</select></label>') +
       '<label>Curso<select onchange="filtrosTareas.curso = this.value; dibujarTareas()">' +
         opcionesSelect(cursosDeTareas(cursos), filtrosTareas.curso, 'Cualquiera') + '</select></label>' +
     '</div>' +
@@ -241,7 +262,7 @@ async function formularioTarea(id) {
         '<label>Estado<select name="estado">' + opcionesSelect(estados, t ? t.estado : 'Pendiente') + '</select></label>' +
       '</div>' +
       '<div class="dos-columnas">' +
-        '<label>Entorno<select name="entorno" required>' + opcionesSelect(entornos, t ? t.entorno : (filtrosTareas.entorno || ''), 'Elegí…') + '</select></label>' +
+        '<label>Entorno<select name="entorno" required>' + opcionesSelect(entornos, t ? t.entorno : (entornoFiltradoTareas() || ''), 'Elegí…') + '</select></label>' +
         '<label>Curso<select name="curso">' + opcionesSelect(cursosDeTareas(cursos), t ? t.curso : (filtrosTareas.curso || ''), '—') + '</select></label>' +
       '</div>' +
       '<div class="dos-columnas">' +
@@ -289,7 +310,7 @@ async function formularioTarea(id) {
     await Datos.guardar('Tareas', datos);
     cerrarModal();
     // Si la tarea quedó en otra semana, se muestra esa semana
-    if (datos.fecha < lunesTareas || datos.fecha > sumarDias(lunesTareas, 4)) ir('tareas/' + lunesDe(datos.fecha));
+    if (datos.fecha < lunesTareas || datos.fecha > sumarDias(lunesTareas, 4)) ir(rutaTareas(lunesDe(datos.fecha)));
   });
 }
 

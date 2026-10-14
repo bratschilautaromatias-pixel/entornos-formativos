@@ -108,13 +108,14 @@ function htmlNecesidad(n, editar) {
   '</div>';
 }
 
-async function formularioNecesidad(id) {
+/** valoresIniciales: para abrirla ya completa desde otra pantalla (ej. un repuesto para una máquina). */
+async function formularioNecesidad(id, valoresIniciales) {
   const [n, entornos, unidades] = await Promise.all([id ? Datos.obtener('Necesidades', id) : null, Datos.lista('Entorno'), Datos.lista('Unidad')]);
   await abrirFormulario({
     tabla: 'Necesidades',
     titulo: n ? 'Editar necesidad' : 'Agregar necesidad',
     registro: n,
-    valores: { entorno: filtroNecesidades.entorno || '', tipo: 'Insumo', prioridad: 'Normal', estado: 'Pendiente' },
+    valores: Object.assign({ entorno: filtroNecesidades.entorno || '', tipo: 'Insumo', prioridad: 'Normal', estado: 'Pendiente' }, valoresIniciales || {}),
     campos: [
       { nombre: 'entorno', etiqueta: 'Entorno', tipo: 'select', requerido: true, vacio: 'Elegí…', opciones: entornos },
       { nombre: 'articulo', etiqueta: '¿Qué hace falta?', tipo: 'texto', requerido: true, ayuda: 'Ej: "Cinta de goteo 16 mm", "Pala de punta", "Filtro de aceite MF165"' },

@@ -15,11 +15,9 @@ PANTALLAS.entorno = function (clave) {
       '<div class="mini-resumen" id="mini-resumen"></div>' +
       '<div class="grilla grilla-secciones">' +
         '<button class="cuadro ancho" onclick="ir(\'produccion/' + entorno.clave + '\')">' +
-          '<span class="icono">🌱</span>' +
-          '<span><span class="nombre">Producción</span>' +
-          '<span class="detalle">' + (entorno.clave === 'huerta'
-            ? 'Parcelas, cultivos, almácigos, siembras, riego, tratamientos y cosechas'
-            : 'Lotes, especies, siembras, cosechas, reservas y raciones') + '</span></span>' +
+          '<span class="icono">' + entorno.produccion.icono + '</span>' +
+          '<span><span class="nombre">' + esc(entorno.produccion.nombre) + '</span>' +
+          '<span class="detalle">' + esc(entorno.produccion.detalle) + '</span></span>' +
         '</button>' +
         '<button class="cuadro ancho" onclick="ir(\'economia/' + entorno.clave + '\')">' +
           '<span class="icono">💰</span>' +
@@ -37,11 +35,11 @@ PANTALLAS.entorno = function (clave) {
           '<span><span class="nombre">Dashboard económico</span>' +
           '<span class="detalle">Gráficos e informe económico</span></span>' +
         '</button>' +
-        '<p class="seccion-titulo">Para todos los entornos</p>' +
-        '<button class="cuadro ancho" onclick="ir(\'tareas\')">' +
+        '<p class="seccion-titulo">Tareas</p>' +
+        '<button class="cuadro ancho" onclick="ir(\'tareas/entorno/' + entorno.clave + '\')">' +
           '<span class="icono">📋</span>' +
           '<span><span class="nombre">Tareas de la semana</span>' +
-          '<span class="detalle">Lo que hay que hacer en ' + esc(entorno.nombre) + ' y el resto de los entornos</span></span>' +
+          '<span class="detalle">Solo las de ' + esc(entorno.nombre) + '</span></span>' +
         '</button>' +
       '</div>' +
     '</main>'

@@ -9,7 +9,8 @@ PANTALLAS.productivo = function (clave) {
   if (!entorno) return ir('inicio');
   render(htmlBarra('Dashboard de producción · ' + entorno.nombre, 'entorno/' + entorno.clave) +
     '<main class="contenido" id="contenido-informe"><p class="vacio">Cargando…</p></main>');
-  alActualizarDatos = clave === 'forrajes' ? dibujarDashboardForrajes : dibujarDashboardHuerta;
+  alActualizarDatos = clave === 'forrajes' ? dibujarDashboardForrajes
+    : clave === 'maquinaria' ? dibujarDashboardMaquinaria : dibujarDashboardHuerta;
   alActualizarDatos();
 };
 

@@ -2,10 +2,13 @@
  * PANTALLA DE INICIO: ENTORNOS FORMATIVOS
  */
 const ENTORNOS = [
-  { clave: 'huerta', nombre: 'Huerta', icono: '🥬', detalle: 'Parcelas, siembras, riego y cosechas', activo: true },
-  { clave: 'forrajes', nombre: 'Forrajes', icono: '🌾', detalle: 'Pasturas, reservas y raciones', activo: true },
+  { clave: 'huerta', nombre: 'Huerta', icono: '🥬', detalle: 'Parcelas, siembras, riego y cosechas', activo: true,
+    produccion: { nombre: 'Producción', icono: '🌱', detalle: 'Parcelas, cultivos, almácigos, siembras, riego, tratamientos y cosechas' } },
+  { clave: 'forrajes', nombre: 'Forrajes', icono: '🌾', detalle: 'Pasturas, reservas y raciones', activo: true,
+    produccion: { nombre: 'Producción', icono: '🌱', detalle: 'Lotes, especies, siembras, cosechas, reservas y pastoreos' } },
   { clave: 'taller', nombre: 'Taller rural', icono: '🔧', detalle: 'Próximamente', activo: false },
-  { clave: 'maquinaria', nombre: 'Maquinaria', icono: '🚜', detalle: 'Próximamente', activo: false }
+  { clave: 'maquinaria', nombre: 'Maquinaria', icono: '🚜', detalle: 'Tractores, motocultores y su mantenimiento', activo: true,
+    produccion: { nombre: 'Máquinas y mantenimiento', icono: '🚜', detalle: 'Plan de servicios, registro de uso con chequeo diario, servicios y reparaciones' } }
 ];
 
 PANTALLAS.inicio = function () {
@@ -16,6 +19,7 @@ PANTALLAS.inicio = function () {
       (e.activo ? ' onclick="ir(\'entorno/' + e.clave + '\')"' : ' disabled') + '>' +
       '<span class="icono">' + e.icono + '</span>' +
       '<span class="nombre">' + esc(e.nombre) + '</span>' +
+      (e.clave === 'maquinaria' ? '<span class="insignia" id="insignia-maquinaria" hidden></span>' : '') +
       '<span class="detalle">' + esc(e.detalle) + '</span>' +
     '</button>';
   }).join('');
@@ -63,6 +67,7 @@ PANTALLAS.inicio = function () {
   if (esDueno()) contarPendientes();
   contarNecesidadesUrgentes();
   mostrarClasesDeHoy();
+  contarServiciosVencidos();
 };
 
 /** Muestra en el cuadro Cursos con qué grupos hay clase hoy. */
