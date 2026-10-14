@@ -70,7 +70,7 @@ function tablasTaller(d) {
   return htmlTablaInforme('Proyectos del período (' + d.proyectos.length + ')', ['Proyecto', 'Tipo', 'Para', 'Curso', 'Inicio', 'Fin', 'Estado', 'Avance', 'Materiales $'],
       d.proyectos.map(function (p) {
         const costo = materialesDeProyecto(t, p.id).reduce(function (s, m) { return s + (m.costo || 0); }, 0);
-        return [p.nombre, p.tipo, p.destino, t.cursos[p.cursoId] || '', formatearFecha(p.fechaInicio), formatearFecha(p.fechaFin), p.estado, avanceProyecto(t, p) + '%', costo ? pesos(costo) : ''];
+        return [p.nombre, p.tipo, p.destino, cursoDe(p, t.cursos), formatearFecha(p.fechaInicio), formatearFecha(p.fechaFin), p.estado, avanceProyecto(t, p) + '%', costo ? pesos(costo) : ''];
       })) +
     htmlTablaInforme('Pedidos de los entornos (' + d.pedidos.length + ')', ['Pedido', 'Entorno', 'Tipo', 'Prioridad', 'Estado', 'Pedido el', 'Hecho el'],
       d.pedidos.map(function (p) {
@@ -84,7 +84,7 @@ function tablasTaller(d) {
       })) +
     htmlTablaInforme('Préstamos de herramientas (' + d.prestamos.length + ')', ['Salida', 'Herramienta', 'Cantidad', 'Quién', 'Curso', 'Devuelta'],
       d.prestamos.map(function (p) {
-        return [formatearFecha(p.fechaSalida), nombreHerramienta(t, p.herramientaId), p.cantidad, p.persona, t.cursos[p.cursoId] || '',
+        return [formatearFecha(p.fechaSalida), nombreHerramienta(t, p.herramientaId), p.cantidad, p.persona, cursoDe(p, t.cursos),
           p.fechaDevolucion ? formatearFecha(p.fechaDevolucion) + (p.estadoDevolucion && p.estadoDevolucion !== 'Buena' ? ' (' + p.estadoDevolucion.toLowerCase() + ')' : '') : 'No'];
       }));
 }
@@ -117,7 +117,7 @@ function exportarTallerExcel(boton) {
       ] },
       { nombre: 'Proyectos', encabezado: 1, filas: [['Proyectos'], ['Proyecto', 'Tipo', 'Para', 'Curso', 'Inicio', 'Fin', 'Estado', 'Avance (%)', 'Guía', 'Materiales ($)']].concat(
         d.proyectos.map(function (p) {
-          return [p.nombre, p.tipo, p.destino, t.cursos[p.cursoId] || '', formatearFecha(p.fechaInicio), formatearFecha(p.fechaFin), p.estado,
+          return [p.nombre, p.tipo, p.destino, cursoDe(p, t.cursos), formatearFecha(p.fechaInicio), formatearFecha(p.fechaFin), p.estado,
             avanceProyecto(t, p), p.guia, celdaNumero(materialesDeProyecto(t, p.id).reduce(function (s, m) { return s + (m.costo || 0); }, 0))];
         })) },
       { nombre: 'Pedidos', encabezado: 1, filas: [['Pedidos de los entornos'], ['Pedido', 'Entorno', 'Quién', 'Tipo', 'Prioridad', 'Estado', 'Pedido el', 'Hecho el', 'Detalle']].concat(
@@ -136,7 +136,7 @@ function exportarTallerExcel(boton) {
         })) },
       { nombre: 'Pañol', encabezado: 1, filas: [['Préstamos de herramientas'], ['Salida', 'Herramienta', 'Cantidad', 'Quién', 'Curso', 'Para', 'Devuelta', 'Cómo volvió']].concat(
         d.prestamos.map(function (p) {
-          return [formatearFecha(p.fechaSalida), nombreHerramienta(t, p.herramientaId), celdaNumero(p.cantidad, 0), p.persona, t.cursos[p.cursoId] || '', p.destino,
+          return [formatearFecha(p.fechaSalida), nombreHerramienta(t, p.herramientaId), celdaNumero(p.cantidad, 0), p.persona, cursoDe(p, t.cursos), p.destino,
             formatearFecha(p.fechaDevolucion), p.estadoDevolucion];
         })) }
     ];
@@ -168,7 +168,7 @@ async function redactarProductivoTaller(periodo) {
     ? listaPuntos(d.proyectos.map(function (p) {
         const materiales = materialesDeProyecto(t, p.id);
         const costo = materiales.reduce(function (s, m) { return s + (m.costo || 0); }, 0);
-        return p.nombre + ' (' + [p.tipo, p.destino ? 'para ' + p.destino : '', t.cursos[p.cursoId]].filter(Boolean).join(', ') + '): ' +
+        return p.nombre + ' (' + [p.tipo, p.destino ? 'para ' + p.destino : '', cursoDe(p, t.cursos)].filter(Boolean).join(', ') + '): ' +
           p.estado.toLowerCase() + ', ' + avanceProyecto(t, p) + '% de avance' +
           (materiales.length ? '; materiales: ' + materiales.map(function (m) { return (m.material ? m.material.nombre : 'material') + ' ' + cantidadMaterialTexto(m.cantidad, m.material); }).join(', ') +
             (costo ? ' (' + pesos(costo) + ')' : '') : '') + '.';

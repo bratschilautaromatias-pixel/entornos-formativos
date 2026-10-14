@@ -52,6 +52,18 @@ function nombreCurso(c) {
   return c ? anioDivision(c) + (c.grupo ? ' grupo ' + c.grupo : '') : '(curso borrado)';
 }
 
+/** El curso de un registro: el escrito a mano, o el elegido de la lista en versiones anteriores (cursoId). */
+function cursoDe(registro, cursosPorId) {
+  return registro.curso || (cursosPorId || {})[registro.cursoId] || '';
+}
+
+/** Campo "Curso": sugiere los cursos cargados en Cursos y asistencia, y deja escribir cualquier otro. */
+async function campoCursoSugerido(etiqueta) {
+  const cursos = ordenarCursos((await Datos.listar('Cursos')).filter(function (c) { return c.activo !== 'false'; }));
+  return { nombre: 'curso', etiqueta: etiqueta || 'Curso', tipo: 'sugerencias', medio: true,
+    opciones: cursos.map(nombreCurso), ayuda: 'Elegí uno de tus cursos o escribilo' };
+}
+
 function nombreEstudiante(e) {
   return e.apellido + (e.nombre ? ', ' + e.nombre : '');
 }

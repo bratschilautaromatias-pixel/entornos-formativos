@@ -225,7 +225,7 @@ function htmlTarjetaProyecto(t, p) {
   return '<button class="tarjeta-curso" onclick="ir(\'taller/proyecto/' + esc(p.id) + '\')">' +
     '<span class="tarjeta-curso-nombre">' + avance + '%</span>' +
     '<span class="tarjeta-curso-datos"><span><b>' + esc(p.nombre) + '</b></span>' +
-      '<span class="ayuda">' + [p.estado, p.tipo, p.destino ? 'para ' + p.destino : '', t.cursos[p.cursoId]].filter(Boolean).map(esc).join(' · ') + '</span>' +
+      '<span class="ayuda">' + [p.estado, p.tipo, p.destino ? 'para ' + p.destino : '', cursoDe(p, t.cursos)].filter(Boolean).map(esc).join(' · ') + '</span>' +
       '<span class="barra-avance"><i style="width:' + avance + '%"></i></span>' +
     '</span></button>';
 }
@@ -254,7 +254,7 @@ function pantallaFichaProyecto(id) {
         '<button class="boton chico secundario" onclick="formularioProyecto(\'' + esc(id) + '\')">✎ Datos del proyecto</button>' +
         '<button class="boton chico secundario" onclick="formularioMovimientoMaterial(null, null, \'Salida\', \'' + esc(id) + '\')">+ Usar material</button></div>' : '') +
       '<div class="tarjeta-info">' +
-        dato('Tipo', p.tipo) + dato('Para', p.destino) + dato('Curso', t.cursos[p.cursoId]) +
+        dato('Tipo', p.tipo) + dato('Para', p.destino) + dato('Curso', cursoDe(p, t.cursos)) +
         dato('Inicio', formatearFecha(p.fechaInicio)) + dato('Fin', formatearFecha(p.fechaFin)) + dato('Guía de referencia', p.guia) +
         dato('Pedido de origen', pedido ? pedido.entorno + ': ' + pedido.titulo : '') + dato('Descripción', p.descripcion) + dato('Notas', p.notas) +
       '</div>';
@@ -315,20 +315,18 @@ function agregarEtapas(proyectoId) {
 }
 
 async function formularioProyecto(id, valoresIniciales) {
-  const [p, entornos, cursos] = await Promise.all([id ? Datos.obtener('ProyectosTaller', id) : null, Datos.lista('Entorno'), Datos.listar('Cursos')]);
+  const [p, t, campoCurso] = await Promise.all([id ? Datos.obtener('ProyectosTaller', id) : null, cargarTaller(), campoCursoSugerido('Curso que lo hace')]);
   await abrirFormulario({
     tabla: 'ProyectosTaller',
     titulo: p ? 'Datos del proyecto' : 'Nuevo proyecto',
-    registro: p,
+    registro: p ? Object.assign({}, p, { curso: cursoDe(p, t.cursos) }) : null,
     valores: Object.assign({ estado: 'Planificado', fechaInicio: hoyTexto(), tipo: 'Construcción' }, valoresIniciales || {}),
     campos: [
       { nombre: 'nombre', etiqueta: 'Proyecto', tipo: 'texto', requerido: true, ayuda: 'Ej: "Comedero tolva para Forrajes", "Mesa de almácigos"' },
       { nombre: 'tipo', etiqueta: 'Tipo', tipo: 'select', opciones: TALLER.tiposProyecto, medio: true },
       { nombre: 'estado', etiqueta: 'Estado', tipo: 'select', opciones: TALLER.estadosProyecto, medio: true },
-      { nombre: 'destino', etiqueta: 'Para qué entorno', tipo: 'select', vacio: '—', opciones: entornos, medio: true },
-      { nombre: 'cursoId', etiqueta: 'Curso que lo hace', tipo: 'select', vacio: '—', medio: true,
-        opciones: ordenarCursos(cursos.filter(function (c) { return c.activo !== 'false' || (p && p.cursoId === c.id); }))
-          .map(function (c) { return { valor: c.id, texto: nombreCurso(c) }; }) },
+      { nombre: 'destino', etiqueta: 'Para qué entorno', tipo: 'texto', medio: true, ayuda: 'Cualquier entorno o sector de la escuela' },
+      campoCurso,
       { nombre: 'fechaInicio', etiqueta: 'Inicio', tipo: 'fecha', medio: true },
       { nombre: 'fechaFin', etiqueta: 'Fin', tipo: 'fecha', medio: true },
       { nombre: 'guia', etiqueta: 'Guía de referencia', tipo: 'select', vacio: 'Ninguna', opciones: TALLER.guias },
@@ -343,6 +341,7 @@ async function formularioProyecto(id, valoresIniciales) {
     antesDeGuardar: function (d) {
       if (valoresIniciales && valoresIniciales.pedidoId && !p) d.pedidoId = valoresIniciales.pedidoId;
       if (d.estado === 'Terminado' && !d.fechaFin) d.fechaFin = hoyTexto();
+      d.cursoId = ''; // el curso queda escrito en "curso"
     },
     despuesDeGuardar: async function (guardado, anterior) {
       // Si viene de un pedido: el pedido acompaña el estado del proyecto
@@ -487,7 +486,7 @@ function pantallaPanol() {
         const dias = diasEntre(p.fechaSalida, hoyTexto());
         return '<div class="movimiento' + (dias > 7 ? ' mov-egresos' : '') + '">' +
           '<div class="movimiento-texto"><strong>' + esc(nombreHerramienta(t, p.herramientaId)) + (Number(p.cantidad) > 1 ? ' × ' + esc(p.cantidad) : '') + '</strong>' +
-            '<span class="ayuda">' + [p.persona, t.cursos[p.cursoId], p.destino ? 'en ' + p.destino : ''].filter(Boolean).map(esc).join(' · ') + '</span>' +
+            '<span class="ayuda">' + [p.persona, cursoDe(p, t.cursos), p.destino ? 'en ' + p.destino : ''].filter(Boolean).map(esc).join(' · ') + '</span>' +
             '<span class="ayuda">Salió el ' + formatearFecha(p.fechaSalida) + ' · hace ' + cantidadDias(dias) + '</span></div>' +
           (editar ? '<div class="movimiento-acciones"><button class="boton chico" onclick="devolverPrestamo(\'' + esc(p.id) + '\')">↩ Devuelta</button></div>' : '') +
         '</div>';
@@ -567,7 +566,7 @@ function formularioVariasHerramientas() {
 }
 
 async function formularioPrestamo(herramientaId) {
-  const [t, entornos] = await Promise.all([cargarTaller(), Datos.lista('Entorno')]);
+  const [t, entornos, campoCurso] = await Promise.all([cargarTaller(), Datos.lista('Entorno'), campoCursoSugerido()]);
   const disponibles = t.herramientas.filter(function (h) {
     return h.activa !== 'false' && (Number(h.cantidad) || 1) - prestadasDe(t, h.id) > 0;
   });
@@ -582,8 +581,7 @@ async function formularioPrestamo(herramientaId) {
       { nombre: 'cantidad', etiqueta: 'Cantidad', tipo: 'entero', minimo: 1, requerido: true, medio: true },
       { nombre: 'fechaSalida', etiqueta: 'Fecha', tipo: 'fecha', requerido: true, medio: true },
       { nombre: 'persona', etiqueta: 'Quién la lleva', tipo: 'texto', requerido: true },
-      { nombre: 'cursoId', etiqueta: 'Curso', tipo: 'select', vacio: '—', medio: true,
-        opciones: Object.keys(t.cursos).map(function (id) { return { valor: id, texto: t.cursos[id] }; }) },
+      campoCurso,
       { nombre: 'destino', etiqueta: 'Para qué entorno', tipo: 'select', vacio: '—', opciones: entornos, medio: true },
       { nombre: 'notas', etiqueta: 'Notas', tipo: 'area' }
     ],

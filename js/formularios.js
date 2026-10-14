@@ -4,7 +4,7 @@
  *
  * Cada campo: {
  *   nombre: 'fechaSiembra', etiqueta: 'Fecha de siembra',
- *   tipo: 'texto' | 'area' | 'numero' | 'entero' | 'fecha' | 'select' | 'sino',
+ *   tipo: 'texto' | 'area' | 'numero' | 'entero' | 'fecha' | 'select' | 'sino' | 'casillas' | 'sugerencias' (texto libre con sugerencias),
  *   opciones: ['A', 'B'] | [{ valor, texto }] | async function (valores) → lista   (para select),
  *   vacio: 'texto de la opción vacía' (select opcional),
  *   requerido: true, minimo: 0, ayuda: 'texto chico', medio: true (ocupa media fila),
@@ -108,7 +108,7 @@ function marcarTodasCasillas(boton) {
 }
 
 async function opcionesDeCampo(campo, valores) {
-  if (campo.tipo !== 'select' && campo.tipo !== 'casillas') return [];
+  if (campo.tipo !== 'select' && campo.tipo !== 'casillas' && campo.tipo !== 'sugerencias') return [];
   const lista = typeof campo.opciones === 'function' ? await campo.opciones(valores) : (campo.opciones || []);
   return lista.map(function (o) { return typeof o === 'object' ? o : { valor: o, texto: o }; });
 }
@@ -137,6 +137,13 @@ function htmlCampo(campo, valores) {
         esc(valor === '' ? '' : String(valor).replace('.', ',')) + '">' + ayuda + '</label>';
     case 'select':
       return '<label>' + etiqueta + '<select ' + nombre + '>' + htmlOpciones(campo, valor) + '</select>' + ayuda + '</label>';
+    case 'sugerencias': {
+      // Texto libre, con una lista de sugerencias al escribir (se puede elegir una o escribir otra cosa)
+      const lista = 'sugerencias-' + esc(campo.nombre);
+      return '<label>' + etiqueta + '<input ' + nombre + ' list="' + lista + '" maxlength="300" autocomplete="off" value="' + esc(valor) + '">' +
+        '<datalist id="' + lista + '">' + campo._opciones.map(function (o) { return '<option value="' + esc(o.valor) + '"></option>'; }).join('') + '</datalist>' +
+        ayuda + '</label>';
+    }
     case 'sino':
       return '<label class="casilla"><input ' + nombre + ' type="checkbox"' + (valor === 'true' ? ' checked' : '') + '> ' +
         esc(campo.etiqueta) + '</label>' + (ayuda ? '<p>' + ayuda + '</p>' : '');

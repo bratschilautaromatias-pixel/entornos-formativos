@@ -9,10 +9,16 @@ const ICONOS_ENTORNO = { 'Huerta': '🥬', 'Forrajes': '🌾', 'Taller rural': '
 const filtrosTareas = { entorno: '', curso: '' };
 const GRUPOS_TAREA = ['A', 'B'];
 
-/** Cursos de 1° a 7°, más los otros valores que tenga la lista (por ejemplo "Todos"). */
-function cursosDeTareas(lista) {
-  const base = ['1°', '2°', '3°', '4°', '5°', '6°', '7°'];
-  return base.concat(lista.filter(function (c) { return base.indexOf(c) === -1; }));
+/** Nombres de los cursos cargados en Cursos y asistencia (para sugerir al escribir). */
+async function cursosSugeridosTareas() {
+  return ordenarCursos((await Datos.listar('Cursos')).filter(function (c) { return c.activo !== 'false'; })).map(nombreCurso);
+}
+
+/** Para el filtro: los cursos cargados más los que ya figuran escritos en las tareas. */
+function cursosParaFiltroTareas(sugeridos, tareas) {
+  const escritos = tareas.map(function (t) { return t.curso; }).filter(function (c) { return c && sugeridos.indexOf(c) === -1; })
+    .filter(function (c, i, a) { return a.indexOf(c) === i; }).sort(function (a, b) { return a.localeCompare(b, 'es', { numeric: true }); });
+  return sugeridos.concat(escritos);
 }
 let lunesTareas = '';
 let entornoFijoTareas = null; // { clave, nombre } cuando se entra desde un entorno
@@ -56,7 +62,7 @@ async function dibujarTareas() {
   const [todas, entornos, cursos, estados, ultimaSync] = await Promise.all([
     Datos.listar('Tareas'),
     Datos.lista('Entorno'),
-    Datos.lista('Curso'),
+    cursosSugeridosTareas(),
     Datos.lista('EstadoTarea'),
     BaseLocal.leerMeta('ultimaSincronizacion')
   ]);
@@ -92,7 +98,7 @@ async function dibujarTareas() {
         '<label>Entorno<select onchange="filtrosTareas.entorno = this.value; dibujarTareas()">' +
           opcionesSelect(entornos, filtrosTareas.entorno, 'Todos') + '</select></label>') +
       '<label>Curso<select onchange="filtrosTareas.curso = this.value; dibujarTareas()">' +
-        opcionesSelect(cursosDeTareas(cursos), filtrosTareas.curso, 'Cualquiera') + '</select></label>' +
+        opcionesSelect(cursosParaFiltroTareas(cursos, todas), filtrosTareas.curso, 'Cualquiera') + '</select></label>' +
     '</div>' +
 
     '<div class="resumen">' +
@@ -247,7 +253,7 @@ async function subirBajarTarea(id, paso) {
 async function formularioTarea(id) {
   if (!puedeEditar()) return;
   const t = id ? await Datos.obtener('Tareas', id) : null;
-  const [entornos, cursos, estados] = await Promise.all([Datos.lista('Entorno'), Datos.lista('Curso'), Datos.lista('EstadoTarea')]);
+  const [entornos, cursos, estados] = await Promise.all([Datos.lista('Entorno'), cursosSugeridosTareas(), Datos.lista('EstadoTarea')]);
   const hoy = hoyTexto();
   const fechaInicial = t ? t.fecha
     : (hoy >= lunesTareas && hoy <= sumarDias(lunesTareas, 4) ? hoy : lunesTareas);
@@ -263,7 +269,10 @@ async function formularioTarea(id) {
       '</div>' +
       '<div class="dos-columnas">' +
         '<label>Entorno<select name="entorno" required>' + opcionesSelect(entornos, t ? t.entorno : (entornoFiltradoTareas() || ''), 'Elegí…') + '</select></label>' +
-        '<label>Curso<select name="curso">' + opcionesSelect(cursosDeTareas(cursos), t ? t.curso : (filtrosTareas.curso || ''), '—') + '</select></label>' +
+        '<label>Curso<input name="curso" list="sugerencias-curso-tarea" maxlength="300" autocomplete="off" value="' +
+          esc(t ? t.curso || '' : (filtrosTareas.curso || '')) + '">' +
+          '<datalist id="sugerencias-curso-tarea">' + cursos.map(function (c) { return '<option value="' + esc(c) + '"></option>'; }).join('') + '</datalist>' +
+          '<span class="ayuda">Elegí uno de tus cursos o escribilo</span></label>' +
       '</div>' +
       '<div class="dos-columnas">' +
         '<span></span>' +
@@ -288,7 +297,7 @@ async function formularioTarea(id) {
       fecha: f.fecha.value,
       estado: f.estado.value,
       entorno: f.entorno.value,
-      curso: f.curso.value,
+      curso: f.curso.value.trim(),
       grupo: f.grupo.value,
       notas: f.notas.value.trim()
     };

@@ -125,7 +125,7 @@ function exportarMaquinariaExcel(boton) {
       { nombre: 'Registro de uso', encabezado: 1, filas: [['Registro de uso y chequeo diario'],
         ['Fecha', 'Máquina', 'Tarea', 'Horas', 'Dónde', 'Curso', 'Operador', 'Chequeo', 'Fallas', 'Observaciones']].concat(
         d.usos.map(function (u) {
-          return [formatearFecha(u.fecha), nombreMaquina(q, u.maquinaId), u.tarea, celdaNumero(u.horas, 1), u.entorno, q.cursos[u.cursoId] || '', u.operador,
+          return [formatearFecha(u.fecha), nombreMaquina(q, u.maquinaId), u.tarea, celdaNumero(u.horas, 1), u.entorno, cursoDe(u, q.cursos), u.operador,
             u.chequeoHecho === 'false' ? 'No se hizo' : u.fallas ? 'Falla' : 'OK', String(u.fallas || '').split(',').join(', '), u.observaciones];
         })) },
       { nombre: 'Servicios', encabezado: 1, filas: [['Historial de servicios y reparaciones'],

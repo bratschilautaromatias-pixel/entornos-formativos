@@ -409,7 +409,7 @@ function htmlUsoMaquina(q, u, conMaquina, editar) {
   const fallas = String(u.fallas || '').split(',').filter(Boolean);
   return '<div class="movimiento' + (fallas.length ? ' mov-egresos' : '') + '">' +
     '<div class="movimiento-texto"><strong>' + (conMaquina ? esc(nombreMaquina(q, u.maquinaId)) + ' · ' : '') + esc(u.tarea || 'Uso') + '</strong>' +
-      '<span class="ayuda">' + [formatearFecha(u.fecha), u.entorno, (q.cursos || {})[u.cursoId], u.operador].filter(Boolean).map(esc).join(' · ') + '</span>' +
+      '<span class="ayuda">' + [formatearFecha(u.fecha), u.entorno, cursoDe(u, q.cursos), u.operador].filter(Boolean).map(esc).join(' · ') + '</span>' +
       '<span class="ayuda">' + (u.chequeoHecho === 'false' ? '⚠ Sin chequeo diario' : fallas.length ? '❌ Falla: ' + esc(fallas.join(', ')) : '✓ Chequeo OK') + '</span>' +
       (u.observaciones ? '<span class="ayuda notas">' + esc(u.observaciones) + '</span>' : '') +
     '</div>' +
@@ -554,7 +554,7 @@ async function formularioPlan(maquinaId, id) {
 }
 
 async function formularioUso(maquinaId, id) {
-  const [q, entornos, cursos] = await Promise.all([cargarMaquinaria(), Datos.lista('Entorno'), Datos.listar('Cursos')]);
+  const [q, entornos, campoCurso] = await Promise.all([cargarMaquinaria(), Datos.lista('Entorno'), campoCursoSugerido()]);
   const m = q.maquinasPorId[maquinaId];
   if (!m) return;
   const u = id ? q.usosMaquinaPorId[id] : null;
@@ -562,7 +562,7 @@ async function formularioUso(maquinaId, id) {
   await abrirFormulario({
     tabla: 'UsosMaquina',
     titulo: (u ? 'Editar uso · ' : 'Uso · ') + m.nombre,
-    registro: u,
+    registro: u ? Object.assign({}, u, { curso: cursoDe(u, q.cursos) }) : null,
     valores: { fecha: hoyTexto(), chequeoHecho: 'true', operador: '' },
     ayuda: 'Lleva ' + horasTexto(horasMaquina(q, maquinaId)) + ' de uso.',
     campos: [
@@ -570,9 +570,7 @@ async function formularioUso(maquinaId, id) {
       { nombre: 'horas', etiqueta: 'Horas trabajadas', tipo: 'numero', minimo: 0, requerido: true, medio: true, ayuda: 'Ej: 1,5' },
       { nombre: 'tarea', etiqueta: 'Tarea realizada', tipo: 'texto', requerido: true, ayuda: 'Ej: "Desmalezado con rotativa"' },
       { nombre: 'entorno', etiqueta: 'Dónde se usó', tipo: 'select', vacio: '—', opciones: entornos, medio: true },
-      { nombre: 'cursoId', etiqueta: 'Curso', tipo: 'select', vacio: '—', medio: true,
-        opciones: ordenarCursos(cursos.filter(function (c) { return c.activo !== 'false' || (u && u.cursoId === c.id); }))
-          .map(function (c) { return { valor: c.id, texto: nombreCurso(c) }; }) },
+      campoCurso,
       { nombre: 'operador', etiqueta: 'Operador', tipo: 'texto', ayuda: 'Ej: "Docente + 3 estudiantes"' },
       { nombre: 'chequeoHecho', etiqueta: 'Se hizo el chequeo diario', tipo: 'sino', seccion: 'Chequeo diario' },
       { nombre: 'fallas', etiqueta: 'Marcá solo lo que dio FALLA (lo que no marques queda OK)', tipo: 'casillas',
@@ -584,7 +582,7 @@ async function formularioUso(maquinaId, id) {
       if (d.fallas && !d.observaciones) return 'Hubo una falla: describila en Observaciones.';
       if (d.fecha > hoyTexto()) return 'La fecha no puede ser futura.';
     },
-    antesDeGuardar: function (d) { if (!u) d.maquinaId = maquinaId; },
+    antesDeGuardar: function (d) { if (!u) d.maquinaId = maquinaId; d.cursoId = ''; },
     despuesDeGuardar: async function (guardado, anterior) {
       const nuevas = String(guardado.fallas || '').split(',').filter(Boolean);
       const antes = anterior ? String(anterior.fallas || '').split(',').filter(Boolean) : [];
