@@ -4,7 +4,7 @@
  * IMPORTANTE: cada vez que se cambia cualquier archivo de la app hay que subir el número de VERSION;
  * así los equipos se enteran de que hay una versión nueva y muestran el aviso "Actualizar".
  */
-const VERSION = 'v30';
+const VERSION = 'v32';
 const CACHE = 'entornos-formativos-' + VERSION;
 
 const ARCHIVOS = [
@@ -24,6 +24,7 @@ const ARCHIVOS = [
   'js/pantallas/entorno.js',
   'js/pantallas/economia.js',
   'js/formularios.js',
+  'js/fotos.js',
   'js/huerta/datos-huerta.js',
   'js/huerta/siembras.js',
   'js/huerta/registros.js',

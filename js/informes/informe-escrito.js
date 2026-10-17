@@ -4,7 +4,7 @@
  * (por ejemplo, la cosecha de cada cultivo), sin resumir.
  * Dirección: #/informe-escrito
  */
-const informeEscrito = { entorno: 'huerta', tipo: 'productivo', periodo: 'mesAnterior', mes: '', desde: '', hasta: '' };
+const informeEscrito = { entorno: 'huerta', tipo: 'productivo', periodo: 'mesAnterior', mes: '', desde: '', hasta: '', conFotos: true };
 let ultimoInformeEscrito = null;
 
 PANTALLAS['informe-escrito'] = function () {
@@ -45,6 +45,8 @@ function dibujarFormularioInformeEscrito() {
       (ie.periodo === 'rango'
         ? '<div class="dos-columnas"><label>Desde<input type="date" value="' + esc(ie.desde) + '" onchange="informeEscrito.desde = this.value"></label>' +
           '<label>Hasta<input type="date" value="' + esc(ie.hasta) + '" onchange="informeEscrito.hasta = this.value"></label></div>' : '') +
+      '<label class="casilla"><input type="checkbox"' + (ie.conFotos ? ' checked' : '') + ' onchange="informeEscrito.conFotos = this.checked"> ' +
+        'Incluir las fotos del período (informe de producción)</label>' +
       '<button class="boton" onclick="generarInformeEscrito(this)">📝 Generar informe</button>' +
     '</div>' +
     '<div id="resultado-informe-escrito"></div>';
@@ -67,11 +69,14 @@ async function generarInformeEscrito(boton) {
   if (!entorno || !lugar) return;
   if (boton) ocupado(boton, true, 'Redactando…');
   try {
-    const cuerpo = informeEscrito.tipo === 'economico'
+    let cuerpo = informeEscrito.tipo === 'economico'
       ? await redactarEconomico(entorno, periodo)
       : entorno.clave === 'forrajes' ? await redactarProductivoForrajes(periodo)
       : entorno.clave === 'maquinaria' ? await redactarProductivoMaquinaria(periodo)
       : entorno.clave === 'taller' ? await redactarProductivoTaller(periodo) : await redactarProductivoHuerta(periodo);
+    if (informeEscrito.tipo !== 'economico' && informeEscrito.conFotos) {
+      cuerpo += await htmlFotosInforme(await fotosDelPeriodo(entorno.nombre, periodo));
+    }
     const titulo = 'Informe ' + (informeEscrito.tipo === 'economico' ? 'económico' : 'de producción') + ' · ' + entorno.nombre;
     const subtitulo = 'Escuela Agraria Parque Pereyra Iraola · ' + periodo.titulo;
     ultimoInformeEscrito = { titulo: titulo, subtitulo: subtitulo, cuerpo: cuerpo };

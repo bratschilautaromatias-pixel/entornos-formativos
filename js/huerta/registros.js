@@ -248,10 +248,22 @@ function pantallaTratamientos() {
               (t.dosis ? ' · ' + numero(t.dosis) + ' ' + esc(t.unidadDosis || '') : '') + (Number(t.costo) ? ' · ' + pesos(t.costo) : '') + '</span>' +
             (fin ? '<span class="ayuda">' + (fin >= hoy ? '⚠ En carencia hasta el ' : 'Carencia cumplida el ') + formatearFecha(fin) + '</span>' : '') +
           '</div>' +
-          (puedeEditar() ? '<div class="movimiento-acciones"><button class="boton chico secundario" onclick="formularioTratamiento(\'' + esc(t.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+          '<div class="movimiento-acciones">' + htmlBotonFotos(h.fotos, 'Tratamientos', t.id, 'Huerta', contextoTratamiento(h, t)) +
+            (puedeEditar() ? '<button class="boton chico secundario" onclick="formularioTratamiento(\'' + esc(t.id) + '\')" aria-label="Editar">✎</button>' : '') + '</div>' +
         '</div>';
       }).join('') : '<p class="vacio">Todavía no hay tratamientos registrados.</p>');
   });
+}
+
+/** Texto que acompaña las fotos de un tratamiento o una cosecha (en la galería y en los informes). */
+function contextoTratamiento(h, t) {
+  const s = h.siembrasPorId[t.siembraId];
+  return 'Tratamiento: ' + t.producto + ' (' + formatearFecha(t.fecha) + ')' + (s ? ' · ' + descripcionSiembra(h, s, false) : '');
+}
+
+function contextoCosecha(h, c) {
+  const s = h.siembrasPorId[c.siembraId];
+  return 'Cosecha del ' + formatearFecha(c.fecha) + ' · ' + numero(c.kg) + ' kg' + (s ? ' · ' + descripcionSiembra(h, s, false) : '');
 }
 
 async function formularioTratamiento(id, siembraId) {
@@ -314,7 +326,8 @@ function pantallaCosechas() {
             (c.calidad || c.notas ? '<span class="ayuda notas">' + esc([c.calidad, c.notas].filter(Boolean).join(' · ')) + '</span>' : '') +
           '</div>' +
           '<div class="movimiento-valor">' + numero(c.kg) + ' kg</div>' +
-          (puedeEditar() ? '<div class="movimiento-acciones"><button class="boton chico secundario" onclick="formularioCosecha(\'' + esc(c.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+          '<div class="movimiento-acciones">' + htmlBotonFotos(h.fotos, 'Cosechas', c.id, 'Huerta', contextoCosecha(h, c)) +
+            (puedeEditar() ? '<button class="boton chico secundario" onclick="formularioCosecha(\'' + esc(c.id) + '\')" aria-label="Editar">✎</button>' : '') + '</div>' +
         '</div>';
       }).join('') : '<p class="vacio">No hay cosechas en este período.</p>');
   });

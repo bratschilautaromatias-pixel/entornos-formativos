@@ -253,6 +253,7 @@ function exportarHuertaPdf(boton) {
   conBotonOcupado(boton, async function () {
     const d = await datosProductivosHuerta(periodoInforme(), true);
     const h = d.h;
+    const fotos = await fotosParaPdf('Huerta', d.periodo);
     imprimirInforme('Informe de producción · Huerta' + (filtroInformeHuerta.parcela ? ' · ' + nombreParcela(h, filtroInformeHuerta.parcela) : ''), d.periodo.titulo,
       indicadoresHuerta(d) + htmlGraficosHuerta(d) + tablaSiembrasHuerta(d, true) +
       htmlTablaInforme('Rendimiento por cultivo', ['Cultivo', 'Kg'], d.porCultivo.map(function (x) { return [x.etiqueta, numero(x.valor)]; })) +
@@ -266,7 +267,7 @@ function exportarHuertaPdf(boton) {
         d.tratamientos.map(function (t) {
           const s = h.siembrasPorId[t.siembraId];
           return [formatearFecha(t.fecha), s ? descripcionSiembra(h, s, false) : '', t.producto, t.tipo, finCarencia(t) ? formatearFecha(finCarencia(t)) : ''];
-        }))
+        })) + fotos
     );
   });
 }

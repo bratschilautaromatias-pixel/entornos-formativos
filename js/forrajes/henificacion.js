@@ -37,7 +37,10 @@ function htmlTarjetaCorte(f, c, editar) {
     '<div class="tarjeta-corte-cabecera"><div><strong>' + esc(c.especieId ? nombreEspecie(f, c.especieId) : (s ? resumenEspecies(f, s.id) : 'Sin especie')) + '</strong>' +
       '<span class="ayuda">' + (s ? esc(lugarTexto(f, s.loteId, s.cuadroId)) : 'Sin siembra') +
         (c.superficieHa ? ' · ' + numero(c.superficieHa) + ' ha cortadas' : '') + '</span></div>' +
-      (editar ? '<button class="boton chico secundario" onclick="formularioCorte(\'' + id + '\')" aria-label="Editar">✎</button>' : '') +
+      '<span class="movimiento-acciones">' +
+        htmlBotonFotos(f.fotos, 'CortesForraje', c.id, 'Forrajes', 'Henificación: corte del ' + formatearFecha(c.fechaCorte) + (s ? ' en ' + lugarTexto(f, s.loteId, s.cuadroId) : '')) +
+        (editar ? '<button class="boton chico secundario" onclick="formularioCorte(\'' + id + '\')" aria-label="Editar">✎</button>' : '') +
+      '</span>' +
     '</div>' +
     '<div class="etapas">' +
       etapa(false, true, '✂ Corte ' + diaMes(c.fechaCorte)) +

@@ -133,9 +133,11 @@ function pantallaAlmacigos() {
             (a.notas ? '<span class="ayuda notas">' + esc(a.notas) + '</span>' : '') +
           '</div>' +
           '<div class="movimiento-valor">' + (pct === null ? '—' : String(pct).replace('.', ',') + '%') + '<br><span class="ayuda">germinación</span></div>' +
-          (editar ? '<div class="movimiento-acciones">' +
-            (a.estado === 'En almácigo' ? '<button class="boton chico" onclick="trasplantarAlmacigo(\'' + esc(a.id) + '\')">Trasplantar</button>' : '') +
-            '<button class="boton chico secundario" onclick="formularioAlmacigo(\'' + esc(a.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+          '<div class="movimiento-acciones">' +
+            (editar && a.estado === 'En almácigo' ? '<button class="boton chico" onclick="trasplantarAlmacigo(\'' + esc(a.id) + '\')">Trasplantar</button>' : '') +
+            htmlBotonFotos(h.fotos, 'Almacigos', a.id, 'Huerta', 'Almácigo de ' + nombreCultivo(h, a.cultivoId) + ' (' + formatearFecha(a.fechaSiembra) + ')') +
+            (editar ? '<button class="boton chico secundario" onclick="formularioAlmacigo(\'' + esc(a.id) + '\')" aria-label="Editar">✎</button>' : '') +
+          '</div>' +
         '</div>';
       }).join('') : '<p class="vacio">No hay almácigos para mostrar.</p>');
   });
@@ -150,9 +152,11 @@ function htmlAlmacigoComprado(h, a, editar) {
       (a.notas ? '<span class="ayuda notas">' + esc(a.notas) + '</span>' : '') +
     '</div>' +
     '<div class="movimiento-valor">' + (a.cantidadPlantines ? esc(a.cantidadPlantines) : '—') + '<br><span class="ayuda">plantines</span></div>' +
-    (editar ? '<div class="movimiento-acciones">' +
-      (a.estado === 'En almácigo' ? '<button class="boton chico" onclick="trasplantarAlmacigo(\'' + esc(a.id) + '\')">Trasplantar</button>' : '') +
-      '<button class="boton chico secundario" onclick="formularioAlmacigoComprado(\'' + esc(a.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+    '<div class="movimiento-acciones">' +
+      (editar && a.estado === 'En almácigo' ? '<button class="boton chico" onclick="trasplantarAlmacigo(\'' + esc(a.id) + '\')">Trasplantar</button>' : '') +
+      htmlBotonFotos(h.fotos, 'Almacigos', a.id, 'Huerta', 'Almácigo comprado de ' + nombreCultivo(h, a.cultivoId) + ' (' + formatearFecha(a.fechaSiembra) + ')') +
+      (editar ? '<button class="boton chico secundario" onclick="formularioAlmacigoComprado(\'' + esc(a.id) + '\')" aria-label="Editar">✎</button>' : '') +
+    '</div>' +
   '</div>';
 }
 

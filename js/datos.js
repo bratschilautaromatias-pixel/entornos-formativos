@@ -248,6 +248,8 @@ const Sincronizador = {
         ? 'El servidor no aceptó ' + rechazados.length + ' registro' + (rechazados.length === 1 ? '' : 's') + '. Quedan guardados en este equipo; avisá para revisarlo.'
         : '';
       if (aEscribir.length) avisarCambioDeDatos();
+      // Las fotos sacadas en este equipo se suben al Drive (en segundo plano)
+      if (typeof subirFotosPendientes === 'function') subirFotosPendientes();
     } catch (e) {
       if (e.codigo === 'SESION') {
         cerrarSesion(e.message + ' Tus cambios quedan guardados en este equipo.');

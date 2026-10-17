@@ -147,7 +147,8 @@ function exportarTallerExcel(boton) {
 function exportarTallerPdf(boton) {
   conBotonOcupado(boton, async function () {
     const d = await datosProductivosTaller(periodoInforme());
-    imprimirInforme('Informe de producción · Taller rural', d.periodo.titulo, indicadoresTaller(d) + htmlGraficosTaller(d) + tablasTaller(d));
+    const fotos = await fotosParaPdf('Taller rural', d.periodo);
+    imprimirInforme('Informe de producción · Taller rural', d.periodo.titulo, indicadoresTaller(d) + htmlGraficosTaller(d) + tablasTaller(d) + fotos);
   });
 }
 

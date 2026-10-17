@@ -128,7 +128,7 @@ async function cargarMaquinasEscuela() {
 /* ---------- Datos y cálculos ---------- */
 
 async function cargarMaquinaria() {
-  const nombres = ['Maquinas', 'PlanServicios', 'UsosMaquina', 'ServiciosMaquina'];
+  const nombres = ['Maquinas', 'PlanServicios', 'UsosMaquina', 'ServiciosMaquina', 'Fotos'];
   const [listas, cursos] = await Promise.all([Promise.all(nombres.map(function (t) { return Datos.listar(t); })), Datos.listar('Cursos')]);
   // { cursoId: "2° 2° grupo B" } para mostrar en los usos
   const q = { cursos: {} };
@@ -280,6 +280,7 @@ function marcoMaquinaria(titulo, volverA, dibujar) {
     const lugar = document.getElementById('contenido-maquinaria');
     if (!lugar) return;
     lugar.innerHTML = await dibujar(q);
+    pintarFotosEnPantalla(lugar);
   };
   alActualizarDatos = redibujar;
   redibujar();
@@ -374,7 +375,8 @@ function pantallaFichaMaquina(id) {
         dato('Tipo', m.tipo) + dato('Marca y modelo', [m.marca, m.modelo].filter(Boolean).join(' ')) + dato('Año', m.anio) + dato('Motor', m.motor) +
         dato('Combustible', m.combustible) + dato('Aceite de motor', m.aceiteMotor) + dato('Filtros y otros', m.filtros) +
         dato('Horas al empezar a usar la app', Number(m.horasIniciales) ? horasTexto(m.horasIniciales) : '') + dato('Notas', m.notas) +
-      '</div>';
+      '</div>' +
+      htmlBloqueFotos(q.fotos, 'Maquinas', id, 'Maquinaria', m.nombre);
 
     // Plan de servicios
     html += '<section class="bloque-curso"><div class="lista-necesidades-cabecera"><h2 class="grupo-titulo">Plan de servicios</h2>' +
@@ -414,7 +416,10 @@ function htmlUsoMaquina(q, u, conMaquina, editar) {
       (u.observaciones ? '<span class="ayuda notas">' + esc(u.observaciones) + '</span>' : '') +
     '</div>' +
     '<div class="movimiento-valor">' + horasTexto(u.horas) + '</div>' +
-    (editar ? '<div class="movimiento-acciones"><button class="boton chico secundario" onclick="formularioUso(\'' + esc(u.maquinaId) + '\', \'' + esc(u.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+    '<div class="movimiento-acciones">' +
+      htmlBotonFotos(q.fotos, 'UsosMaquina', u.id, 'Maquinaria', nombreMaquina(q, u.maquinaId) + ' · uso del ' + formatearFecha(u.fecha) + (u.tarea ? ' (' + u.tarea + ')' : '')) +
+      (editar ? '<button class="boton chico secundario" onclick="formularioUso(\'' + esc(u.maquinaId) + '\', \'' + esc(u.id) + '\')" aria-label="Editar">✎</button>' : '') +
+    '</div>' +
   '</div>';
 }
 
@@ -428,7 +433,10 @@ function htmlServicioMaquina(q, s, conMaquina, editar) {
       (s.notas ? '<span class="ayuda notas">' + esc(s.notas) + '</span>' : '') +
     '</div>' +
     '<div class="movimiento-valor">' + (Number(s.costo) ? pesos(s.costo) : '—') + (s.egresoId ? '<br><span class="ayuda">en Economía</span>' : '') + '</div>' +
-    (editar ? '<div class="movimiento-acciones"><button class="boton chico secundario" onclick="formularioServicio(\'' + esc(s.maquinaId) + '\', \'' + esc(s.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+    '<div class="movimiento-acciones">' +
+      htmlBotonFotos(q.fotos, 'ServiciosMaquina', s.id, 'Maquinaria', nombreMaquina(q, s.maquinaId) + ' · ' + (p ? p.tarea : (s.descripcion || s.tipo))) +
+      (editar ? '<button class="boton chico secundario" onclick="formularioServicio(\'' + esc(s.maquinaId) + '\', \'' + esc(s.id) + '\')" aria-label="Editar">✎</button>' : '') +
+    '</div>' +
   '</div>';
 }
 

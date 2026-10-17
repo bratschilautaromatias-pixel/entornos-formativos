@@ -233,9 +233,10 @@ function exportarForrajesExcel(boton) {
 function exportarForrajesPdf(boton) {
   conBotonOcupado(boton, async function () {
     const d = await datosProductivosForrajes(periodoInforme(), true);
+    const fotos = await fotosParaPdf('Forrajes', d.periodo);
     imprimirInforme('Informe de producción · Forrajes' + (filtroInformeForrajes.lote ? ' · ' + nombreLote(d.f, filtroInformeForrajes.lote) : ''), d.periodo.titulo,
       indicadoresForrajes(d) + htmlGraficosForrajes(d) + tablaSiembrasForrajes(d) + tablaPastoreos(d) + tablaRaciones(d) +
       htmlTablaInforme('Stock de reservas', ['Especie', 'Stock (kg)', 'Consumo (kg/día)', 'Días restantes'],
-        d.proyeccion.map(function (p) { return [p.nombre, numero(p.stockKg), p.consumoKgDia ? numero(p.consumoKgDia) : '—', p.dias === null ? 'Sin consumo' : Math.floor(p.dias)]; })));
+        d.proyeccion.map(function (p) { return [p.nombre, numero(p.stockKg), p.consumoKgDia ? numero(p.consumoKgDia) : '—', p.dias === null ? 'Sin consumo' : Math.floor(p.dias)]; })) + fotos);
   });
 }

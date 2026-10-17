@@ -15,7 +15,7 @@ const HUERTA = {
 
 /** Trae todas las tablas de Huerta del equipo, con índices por id. */
 async function cargarHuerta() {
-  const nombres = ['Parcelas', 'Lomos', 'Cultivos', 'Almacigos', 'Siembras', 'Riegos', 'Tratamientos', 'Cosechas', 'AnalisisSuelo', 'LluviasHuerta'];
+  const nombres = ['Parcelas', 'Lomos', 'Cultivos', 'Almacigos', 'Siembras', 'Riegos', 'Tratamientos', 'Cosechas', 'AnalisisSuelo', 'LluviasHuerta', 'Fotos'];
   const listas = await Promise.all(nombres.map(function (t) { return Datos.listar(t); }));
   const h = {};
   nombres.forEach(function (t, i) {

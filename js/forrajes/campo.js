@@ -40,6 +40,7 @@ function marcoForrajes(titulo, volverA, dibujar) {
     const lugar = document.getElementById('contenido-forrajes');
     if (!lugar) return;
     lugar.innerHTML = await dibujar(f);
+    pintarFotosEnPantalla(lugar);
   };
   alActualizarDatos = redibujar;
   redibujar();
@@ -167,10 +168,11 @@ function pantallaFichaSiembraForraje(id) {
             .filter(Boolean).join(' · ') + '</span></div>' + botonEditar('formularioEspecieSiembra', se.id) + '</div>';
       }).join('') : '<p class="ayuda">Sin especies cargadas.</p>') +
       (puedeEditar() ? '<button class="boton chico secundario" onclick="formularioEspecieSiembra(null, \'' + esc(id) + '\')">+ Agregar especie</button>' : '') +
+      htmlBloqueFotos(f.fotos, 'SiembrasForraje', s.id, 'Forrajes', lugarTexto(f, s.loteId, s.cuadroId) + ' · ' + resumenEspecies(f, s.id)) +
       htmlHistorial('🚜 Cosechas', cosechas, function (c) {
         return '<strong>' + numero(c.cantidadTotalKg) + ' kg</strong> · ' + esc(c.tipoAprovechamiento) + ' · ' + formatearFecha(c.fecha) +
           (c.cantidadRollos ? ' · ' + numero(c.cantidadRollos) + ' rollos' : '') + (c.ingresadaAInventario === 'true' ? ' · en stock' : '');
-      }, 'formularioCosechaForraje') +
+      }, 'formularioCosechaForraje', function (c) { return htmlBotonFotos(f.fotos, 'CosechasForraje', c.id, 'Forrajes', contextoCosechaForraje(f, c)); }) +
       htmlHistorial('🐑 Pastoreos', pastoreosDeSiembra(f, id).sort(function (a, b) { return b.fechaEntrada.localeCompare(a.fechaEntrada); }), function (p) {
         const i = infoPastoreo(f, p);
         return '<strong>' + numero(i.cabezas) + ' cabezas · ' + esc(i.animales) + '</strong> · ' + diaMes(p.fechaEntrada) +
@@ -266,10 +268,18 @@ function pantallaCosechasForraje() {
           '<div class="movimiento-valor">' + numero(c.cantidadTotalKg) + ' kg</div>' +
           '<div class="movimiento-acciones">' +
             (sinStock && puedeEditar() ? '<button class="boton chico" onclick="ingresarCosechaAlStock(\'' + esc(c.id) + '\')">Ingresar al stock</button>' : '') +
+            htmlBotonFotos(f.fotos, 'CosechasForraje', c.id, 'Forrajes', contextoCosechaForraje(f, c)) +
             botonEditar('formularioCosechaForraje', c.id) +
           '</div></div>';
       }).join('') : '<p class="vacio">Todavía no hay cosechas.</p>');
   });
+}
+
+/** Texto que acompaña las fotos de una cosecha de forraje (en la galería y en los informes). */
+function contextoCosechaForraje(f, c) {
+  const s = f.siembrasForrajePorId[c.siembraId];
+  return 'Cosecha del ' + formatearFecha(c.fecha) + ' · ' + numero(c.cantidadTotalKg) + ' kg' + (c.cantidadRollos ? ' (' + numero(c.cantidadRollos) + ' rollos)' : '') +
+    (s ? ' · ' + lugarTexto(f, s.loteId, s.cuadroId) : '') + (c.especieId ? ' · ' + nombreEspecie(f, c.especieId) : '');
 }
 
 async function formularioCosechaForraje(id, siembraId) {

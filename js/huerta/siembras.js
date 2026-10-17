@@ -44,6 +44,7 @@ function marcoHuerta(titulo, volverA, dibujar) {
     const h = await cargarHuerta();
     if (!document.getElementById('contenido-huerta')) return;
     lugar.innerHTML = await dibujar(h);
+    pintarFotosEnPantalla(lugar);
   };
   alActualizarDatos = redibujar;
   redibujar();
@@ -207,16 +208,18 @@ function pantallaFichaSiembra(id) {
             '<p><a href="#/huerta/cultivo/' + esc(cultivo.id) + '">Ver ficha completa</a></p></details>'
         : '') +
 
+      htmlBloqueFotos(h.fotos, 'Siembras', s.id, 'Huerta', descripcionSiembra(h, s, false)) +
+
       htmlHistorial('🧺 Cosechas', cosechas, function (c) {
         return '<strong>' + numero(c.kg) + ' kg</strong> · ' + formatearFecha(c.fecha) + (c.cosechaTerminada === 'true' ? ' · cosecha terminada' : '') +
           (c.calidad ? '<br><span class="ayuda">' + esc(c.calidad) + '</span>' : '') + (c.notas ? '<br><span class="ayuda">' + esc(c.notas) + '</span>' : '');
-      }, 'formularioCosecha') +
+      }, 'formularioCosecha', function (c) { return htmlBotonFotos(h.fotos, 'Cosechas', c.id, 'Huerta', contextoCosecha(h, c)); }) +
       htmlHistorial('💧 Riegos', riegos, htmlLineaRiego, 'formularioRiego') +
       htmlHistorial('🧪 Tratamientos', tratamientos, function (t) {
         return '<strong>' + esc(t.producto) + '</strong> · ' + esc(t.tipo) + ' · ' + formatearFecha(t.fecha) +
           (t.dosis ? ' · ' + numero(t.dosis) + ' ' + esc(t.unidadDosis || '') : '') +
           (finCarencia(t) ? '<br><span class="ayuda">Carencia hasta el ' + formatearFecha(finCarencia(t)) + '</span>' : '');
-      }, 'formularioTratamiento');
+      }, 'formularioTratamiento', function (t) { return htmlBotonFotos(h.fotos, 'Tratamientos', t.id, 'Huerta', contextoTratamiento(h, t)); });
   });
 }
 
@@ -237,13 +240,15 @@ function htmlLineaRiego(r) {
     (r.notas ? '<br><span class="ayuda">' + esc(r.notas) + '</span>' : '');
 }
 
-function htmlHistorial(titulo, lista, dibujarFila, funcionEditar) {
+/** botonExtra (opcional): función que devuelve más botones para cada fila (ej. 📷 fotos). */
+function htmlHistorial(titulo, lista, dibujarFila, funcionEditar, botonExtra) {
   return '<h2 class="grupo-titulo">' + titulo + ' <span class="contador">' + lista.length + '</span></h2>' +
     (lista.length
       ? lista.map(function (r) {
           return '<div class="fila-historial"><div>' + dibujarFila(r) + '</div>' +
+            '<span class="movimiento-acciones">' + (botonExtra ? botonExtra(r) : '') +
             (puedeEditar() ? '<button class="boton chico secundario" onclick="' + funcionEditar + '(\'' + esc(r.id) + '\')" aria-label="Editar">✎</button>' : '') +
-          '</div>';
+            '</span></div>';
         }).join('')
       : '<p class="ayuda">Todavía no hay registros.</p>');
 }

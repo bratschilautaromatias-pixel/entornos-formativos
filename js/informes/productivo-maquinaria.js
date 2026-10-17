@@ -145,8 +145,9 @@ function exportarMaquinariaExcel(boton) {
 function exportarMaquinariaPdf(boton) {
   conBotonOcupado(boton, async function () {
     const d = await datosProductivosMaquinaria(periodoInforme());
+    const fotos = await fotosParaPdf('Maquinaria', d.periodo);
     imprimirInforme('Informe de uso y mantenimiento · Maquinaria', d.periodo.titulo,
-      indicadoresMaquinaria(d) + htmlGraficosMaquinaria(d) + tablasMaquinaria(d));
+      indicadoresMaquinaria(d) + htmlGraficosMaquinaria(d) + tablasMaquinaria(d) + fotos);
   });
 }
 

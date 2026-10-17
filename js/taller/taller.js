@@ -31,7 +31,7 @@ const TALLER = {
 /* ---------- Datos y cálculos ---------- */
 
 async function cargarTaller() {
-  const nombres = ['ProyectosTaller', 'EtapasProyecto', 'PedidosTaller', 'Herramientas', 'PrestamosHerramienta', 'MaterialesTaller', 'MovimientosMaterial'];
+  const nombres = ['ProyectosTaller', 'EtapasProyecto', 'PedidosTaller', 'Herramientas', 'PrestamosHerramienta', 'MaterialesTaller', 'MovimientosMaterial', 'Fotos'];
   const [listas, cursos] = await Promise.all([Promise.all(nombres.map(function (t) { return Datos.listar(t); })), Datos.listar('Cursos')]);
   const t = { cursos: {} };
   cursos.forEach(function (c) { t.cursos[c.id] = nombreCurso(c); });
@@ -157,6 +157,7 @@ function marcoTaller(titulo, volverA, dibujar) {
     const lugar = document.getElementById('contenido-taller');
     if (!lugar) return;
     lugar.innerHTML = await dibujar(t);
+    pintarFotosEnPantalla(lugar);
   };
   alActualizarDatos = redibujar;
   redibujar();
@@ -257,7 +258,8 @@ function pantallaFichaProyecto(id) {
         dato('Tipo', p.tipo) + dato('Para', p.destino) + dato('Curso', cursoDe(p, t.cursos)) +
         dato('Inicio', formatearFecha(p.fechaInicio)) + dato('Fin', formatearFecha(p.fechaFin)) + dato('Guía de referencia', p.guia) +
         dato('Pedido de origen', pedido ? pedido.entorno + ': ' + pedido.titulo : '') + dato('Descripción', p.descripcion) + dato('Notas', p.notas) +
-      '</div>';
+      '</div>' +
+      htmlBloqueFotos(t.fotos, 'ProyectosTaller', id, 'Taller rural', 'Proyecto: ' + p.nombre);
 
     html += '<section class="bloque-curso"><div class="lista-necesidades-cabecera"><h2 class="grupo-titulo">Etapas <span class="contador">' + etapas.length + '</span></h2>' +
       (editar ? '<div class="acciones"><button class="boton chico secundario" onclick="agregarEtapas(\'' + esc(id) + '\')">+ Etapas</button></div>' : '') + '</div>' +
@@ -401,10 +403,12 @@ function htmlPedidoTaller(t, p, editar) {
       (p.proyectoId && t.proyectosTallerPorId[p.proyectoId] ? '<span class="ayuda">🏗 Proyecto: <a href="#/taller/proyecto/' + esc(p.proyectoId) + '">' + esc(nombreProyecto(t, p.proyectoId)) + '</a></span>' : '') +
       (estado === 'Hecho' && p.fechaHecho ? '<span class="ayuda">✓ Hecho el ' + formatearFecha(p.fechaHecho) + '</span>' : '') +
     '</div>' +
-    (editar ? '<div class="movimiento-acciones">' +
-      (abierto ? '<button class="boton chico" onclick="pedidoHecho(\'' + esc(p.id) + '\')">✓ Hecho</button>' : '') +
-      (abierto && !p.proyectoId ? '<button class="boton chico secundario" onclick="pedidoAProyecto(\'' + esc(p.id) + '\')">🏗 Hacer proyecto</button>' : '') +
-      '<button class="boton chico secundario" onclick="formularioPedidoTaller(\'' + esc(p.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+    '<div class="movimiento-acciones">' +
+      (editar && abierto ? '<button class="boton chico" onclick="pedidoHecho(\'' + esc(p.id) + '\')">✓ Hecho</button>' : '') +
+      (editar && abierto && !p.proyectoId ? '<button class="boton chico secundario" onclick="pedidoAProyecto(\'' + esc(p.id) + '\')">🏗 Hacer proyecto</button>' : '') +
+      htmlBotonFotos(t.fotos, 'PedidosTaller', p.id, 'Taller rural', 'Pedido de ' + p.entorno + ': ' + p.titulo) +
+      (editar ? '<button class="boton chico secundario" onclick="formularioPedidoTaller(\'' + esc(p.id) + '\')" aria-label="Editar">✎</button>' : '') +
+    '</div>' +
   '</div>';
 }
 
@@ -502,9 +506,11 @@ function pantallaPanol() {
             '<div class="movimiento-texto"><strong>' + esc(h.nombre) + '</strong>' +
               '<span class="ayuda">' + [h.marca, h.estado, h.ubicacion, h.activa === 'false' ? 'dada de baja' : ''].filter(Boolean).map(esc).join(' · ') + '</span></div>' +
             '<div class="movimiento-valor">' + (total - prestadas) + ' de ' + total + '<br><span class="ayuda">disponibles</span></div>' +
-            (editar ? '<div class="movimiento-acciones">' +
-              (h.activa !== 'false' && total - prestadas > 0 ? '<button class="boton chico secundario" onclick="formularioPrestamo(\'' + esc(h.id) + '\')">Prestar</button>' : '') +
-              '<button class="boton chico secundario" onclick="formularioHerramienta(\'' + esc(h.id) + '\')" aria-label="Editar">✎</button></div>' : '') +
+            '<div class="movimiento-acciones">' +
+              (editar && h.activa !== 'false' && total - prestadas > 0 ? '<button class="boton chico secundario" onclick="formularioPrestamo(\'' + esc(h.id) + '\')">Prestar</button>' : '') +
+              htmlBotonFotos(t.fotos, 'Herramientas', h.id, 'Taller rural', 'Herramienta: ' + h.nombre) +
+              (editar ? '<button class="boton chico secundario" onclick="formularioHerramienta(\'' + esc(h.id) + '\')" aria-label="Editar">✎</button>' : '') +
+            '</div>' +
           '</div>';
         }).join('');
       }).join('') : '<p class="vacio">Todavía no hay herramientas cargadas. Usá "+ Varias" para cargar la lista de una vez.</p>') + '</section>';
