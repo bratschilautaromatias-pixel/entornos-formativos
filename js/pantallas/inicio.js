@@ -56,6 +56,11 @@ PANTALLAS.inicio = function () {
               '<span><span class="nombre">Generar informe escrito</span>' +
               '<span class="detalle">Solo lo ves vos: la app redacta el informe de producción o económico de un período</span></span>' +
             '</button>' +
+            '<button class="cuadro ancho" onclick="ir(\'respaldo\')">' +
+              '<span class="icono">💾</span>' +
+              '<span><span class="nombre">Copia de seguridad <span class="insignia" id="insignia-respaldo" hidden></span></span>' +
+              '<span class="detalle">Guardar una copia completa de todos los datos en tu Drive</span></span>' +
+            '</button>' +
             '<button class="cuadro ancho" onclick="ir(\'usuarios\')">' +
               '<span class="icono">👥</span>' +
               '<span><span class="nombre">Usuarios <span class="insignia" id="pendientes" hidden></span></span>' +
@@ -67,6 +72,7 @@ PANTALLAS.inicio = function () {
   );
 
   if (esDueno()) contarPendientes();
+  if (esDueno()) avisarRespaldoViejo();
   contarNecesidadesUrgentes();
   mostrarClasesDeHoy();
   contarServiciosVencidos();

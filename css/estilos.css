@@ -1085,3 +1085,11 @@ fieldset.casillas .boton { margin-bottom: 8px; }
 .foto-informe img { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; display: block; }
 .foto-informe figcaption { font-size: 8.5pt; margin-top: 3px; line-height: 1.3; }
 .informe-escrito .grilla-fotos-informe { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+/* ===== Botón de sincronizar a mano ===== */
+.barra .boton-sync { font-size: 1.05rem; line-height: 1; padding: 6px 9px; }
+.barra .boton-sync.girando { animation: girar 1s linear infinite; opacity: 0.8; }
+.barra .chip-sync.listo { background: #c8e6c9; color: var(--verde-oscuro); }
+@keyframes girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .barra .boton-sync.girando { animation: none; } }
+a.fila-clase { text-decoration: none; font-weight: 400; }

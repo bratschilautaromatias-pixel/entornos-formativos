@@ -160,6 +160,7 @@ function htmlBarra(titulo, volverA) {
     (volverA ? '<button onclick="ir(\'' + volverA + '\')" aria-label="Volver">←</button>' : '') +
     '<span class="titulo">' + esc(titulo) + '</span>' +
     '<button class="chip-sync" id="indicador-sync" onclick="Sincronizador.sincronizar()" hidden></button>' +
+    (sesion ? '<button class="boton-sync" id="boton-sync" onclick="sincronizarAMano()" aria-label="Sincronizar ahora" title="Sincronizar ahora">🔄</button>' : '') +
     (sesion ? '<span class="chip chip-rol">' + esc(NOMBRES_ROL[sesion.usuario.rol] || sesion.usuario.rol) + '</span>' : '') +
     (sesion ? '<button onclick="salir()">Salir</button>' : '') +
     '</header>';
@@ -181,6 +182,23 @@ function actualizarIndicadorSync() {
   indicador.title = s.estado === 'error' ? s.mensajeError : 'Tocá para sincronizar ahora';
   indicador.className = 'chip-sync ' + s.estado;
   indicador.hidden = !indicador.textContent;
+  const boton = document.getElementById('boton-sync');
+  if (boton) {
+    boton.disabled = s.estado === 'sincronizando';
+    boton.classList.toggle('girando', s.estado === 'sincronizando');
+  }
+}
+
+/** Botón 🔄 de la barra: sincroniza ya (además de la sincronización automática) y avisa cómo salió. */
+async function sincronizarAMano() {
+  if (!navigator.onLine) return alert('No hay conexión a internet. Tus cambios quedan guardados en este equipo y se envían solos cuando vuelva.');
+  await Sincronizador.sincronizar();
+  const indicador = document.getElementById('indicador-sync');
+  if (!indicador || Sincronizador.estado !== 'ok') return;
+  indicador.textContent = '✓ Sincronizado';
+  indicador.className = 'chip-sync listo';
+  indicador.hidden = false;
+  setTimeout(actualizarIndicadorSync, 2500);
 }
 
 function mostrarMensaje(id, texto, tipo) {
