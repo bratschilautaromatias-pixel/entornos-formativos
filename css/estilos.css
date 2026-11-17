@@ -1093,3 +1093,30 @@ fieldset.casillas .boton { margin-bottom: 8px; }
 @keyframes girar { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .barra .boton-sync.girando { animation: none; } }
 a.fila-clase { text-decoration: none; font-weight: 400; }
+
+/* ===== Balance de campaña ===== */
+.tabla-balance td.cambio, .cambio { font-weight: 700; color: var(--texto-suave); }
+.tabla-balance td.cambio.bien, .cambio.bien { color: var(--verde); }
+.tabla-balance td.cambio.mal, .cambio.mal { color: var(--rojo); }
+.seccion-informe .tabla-balance th:not(:first-child), .seccion-informe .tabla-balance td:not(:first-child) { text-align: right; }
+.destacado-balance ul { margin: 2px 0 10px; padding-left: 20px; }
+.destacado-balance p { margin: 6px 0 2px; }
+.nota-balance {
+  background: var(--tarjeta);
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  border-left: 5px solid var(--borde);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.nota-balance.bien { border-left-color: var(--verde); }
+.nota-balance.medio, .nota-balance.pendiente { border-left-color: var(--ambar); }
+.nota-balance.mal { border-left-color: var(--rojo); }
+.nota-balance-texto { flex: 1 1 240px; min-width: 0; }
+.nota-balance-texto > strong, .nota-balance-texto > span { display: block; margin-bottom: 2px; overflow-wrap: anywhere; }
+.nota-balance .movimiento-acciones { flex-wrap: wrap; align-items: center; }
+.informe-impreso .nota-balance { box-shadow: none; border: 1px solid #ddd; border-left-width: 5px; break-inside: avoid; }
