@@ -1,0 +1,16 @@
+{
+  "name": "Entornos Formativos",
+  "short_name": "Entornos",
+  "description": "Gestión de los entornos formativos: Huerta, Forrajes, Taller rural, Maquinaria y tareas de la semana.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f8f1",
+  "theme_color": "#2e7d32",
+  "icons": [
+    { "src": "iconos/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
